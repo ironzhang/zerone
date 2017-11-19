@@ -13,7 +13,7 @@ type clientRequest struct {
 	TraceID  string
 	ClientID string
 	Verbose  bool
-	Body     interface{}
+	Body     interface{} `json:",omitempty"`
 }
 
 type clientResponse struct {
@@ -25,21 +25,21 @@ type clientResponse struct {
 	Body     json.RawMessage
 }
 
-type ClientCodec struct {
+type clientCodec struct {
 	enc  *json.Encoder
 	dec  *json.Decoder
 	req  clientRequest
 	resp clientResponse
 }
 
-func NewClientCodec(rw io.ReadWriter) *ClientCodec {
-	return &ClientCodec{
+func NewClientCodec(rw io.ReadWriter) codec.ClientCodec {
+	return &clientCodec{
 		enc: json.NewEncoder(rw),
 		dec: json.NewDecoder(rw),
 	}
 }
 
-func (c *ClientCodec) WriteRequest(h *codec.RequestHeader, x interface{}) error {
+func (c *clientCodec) WriteRequest(h *codec.RequestHeader, x interface{}) error {
 	c.req.Method = h.Method
 	c.req.Sequence = h.Sequence
 	c.req.TraceID = h.TraceID
@@ -49,7 +49,7 @@ func (c *ClientCodec) WriteRequest(h *codec.RequestHeader, x interface{}) error 
 	return c.enc.Encode(&c.req)
 }
 
-func (c *ClientCodec) ReadResponseHeader(h *codec.ResponseHeader) error {
+func (c *clientCodec) ReadResponseHeader(h *codec.ResponseHeader) error {
 	if err := c.dec.Decode(&c.resp); err != nil {
 		return err
 	}
@@ -62,7 +62,7 @@ func (c *ClientCodec) ReadResponseHeader(h *codec.ResponseHeader) error {
 	return nil
 }
 
-func (c *ClientCodec) ReadResponseBody(x interface{}) error {
+func (c *clientCodec) ReadResponseBody(x interface{}) error {
 	if x == nil {
 		return nil
 	}
