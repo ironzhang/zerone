@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io"
 
-	"github.com/ironzhang/zerone/codec"
+	"github.com/ironzhang/zerone/rpc/codec"
 )
 
 type serverRequest struct {
