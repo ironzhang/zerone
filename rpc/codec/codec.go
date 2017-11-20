@@ -1,19 +1,24 @@
 package codec
 
 type RequestHeader struct {
-	Method   string
-	Sequence uint64
-	TraceID  string
-	ClientID string
-	Verbose  bool
+	Method     string // 方法
+	Sequence   uint64 // 序号
+	TraceID    string // TraceID
+	ClientName string // 客户端名称
+	Verbose    bool   // 是否打印日志详情
+}
+
+type Error struct {
+	Code        int    // 错误码
+	Message     string // 错误消息
+	Description string // 错误的具体信息
+	ServerName  string // 产生错误的服务端名称
 }
 
 type ResponseHeader struct {
-	Method   string
-	Sequence uint64
-	Code     int
-	Desc     string
-	Cause    string
+	Method   string // 方法
+	Sequence uint64 // 序号
+	Error    Error  // 错误
 }
 
 type ClientCodec interface {

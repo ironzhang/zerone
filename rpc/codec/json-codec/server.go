@@ -8,21 +8,22 @@ import (
 )
 
 type serverRequest struct {
-	Method   string
-	Sequence uint64
-	TraceID  string
-	ClientID string
-	Verbose  bool
-	Body     json.RawMessage
+	Method     string          `json:"Method"`
+	Sequence   uint64          `json:"Sequence"`
+	TraceID    string          `json:"TraceID"`
+	ClientName string          `json:"ClientName"`
+	Verbose    bool            `json:"Verbose"`
+	Body       json.RawMessage `json:"Body,omitempty"`
 }
 
 type serverResponse struct {
-	Method   string
-	Sequence uint64
-	Code     int
-	Desc     string      `json:",omitempty"`
-	Cause    string      `json:",omitempty"`
-	Body     interface{} `json:",omitempty"`
+	Method      string      `json:"Method"`
+	Sequence    uint64      `json:"Sequence"`
+	Code        int         `json:"Code"`
+	Message     string      `json:"Message,omitempty"`
+	Description string      `json:"Description,omitempty"`
+	ServerName  string      `json:"ServerName,omitempty"`
+	Body        interface{} `json:"Body,omitempty"`
 }
 
 type serverCodec struct {
@@ -47,7 +48,7 @@ func (c *serverCodec) ReadRequestHeader(h *codec.RequestHeader) error {
 	h.Method = c.req.Method
 	h.Sequence = c.req.Sequence
 	h.TraceID = c.req.TraceID
-	h.ClientID = c.req.ClientID
+	h.ClientName = c.req.ClientName
 	h.Verbose = c.req.Verbose
 	return nil
 }
@@ -62,9 +63,10 @@ func (c *serverCodec) ReadRequestBody(x interface{}) error {
 func (c *serverCodec) WriteResponse(h *codec.ResponseHeader, x interface{}) error {
 	c.resp.Method = h.Method
 	c.resp.Sequence = h.Sequence
-	c.resp.Code = h.Code
-	c.resp.Desc = h.Desc
-	c.resp.Cause = h.Cause
+	c.resp.Code = h.Error.Code
+	c.resp.Message = h.Error.Message
+	c.resp.Description = h.Error.Description
+	c.resp.ServerName = h.Error.ServerName
 	c.resp.Body = x
 	return c.enc.Encode(&c.resp)
 }
