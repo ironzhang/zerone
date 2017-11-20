@@ -6,6 +6,7 @@ type RequestHeader struct {
 	TraceID    string // TraceID
 	ClientName string // 客户端名称
 	Verbose    bool   // 是否打印日志详情
+	Cancel     bool   // 取消RPC调用
 }
 
 type Error struct {

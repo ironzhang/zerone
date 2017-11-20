@@ -1,6 +1,8 @@
 package json_codec
 
 import (
+	"bytes"
+	"encoding/json"
 	"io"
 	"net"
 	"os"
@@ -9,6 +11,151 @@ import (
 
 	"github.com/ironzhang/zerone/rpc/codec"
 )
+
+type Args struct {
+	A, B int
+}
+
+type Reply struct {
+	C int
+}
+
+func TestRequest(t *testing.T) {
+	tests := []clientRequest{
+		{
+			Method:     "Add",
+			Sequence:   1,
+			TraceID:    "1",
+			ClientName: "client-1",
+			Verbose:    true,
+			Cancel:     false,
+			Body:       &Args{A: 1, B: 2},
+		},
+		{
+			Method:     "Ping",
+			Sequence:   1,
+			TraceID:    "1",
+			ClientName: "client-1",
+			Verbose:    true,
+			Cancel:     false,
+			Body:       "hello",
+		},
+		{
+			Method:     "Ping",
+			Sequence:   1,
+			TraceID:    "1",
+			ClientName: "client-1",
+			Verbose:    true,
+			Cancel:     true,
+			Body:       nil,
+		},
+	}
+	for i, creq := range tests {
+		var sreq serverRequest
+		data, err := json.Marshal(creq)
+		if err != nil {
+			t.Fatalf("case%d: json marshal: %v", i, err)
+		}
+		if err = json.Unmarshal(data, &sreq); err != nil {
+			t.Fatalf("case%d: json unmarshal: %v", i, err)
+		}
+		body, err := json.Marshal(creq.Body)
+		if err != nil {
+			t.Fatalf("case%d: marshal body: %v", i, err)
+		}
+
+		if got, want := sreq.Method, creq.Method; got != want {
+			t.Fatalf("case%d: Method: %v != %v", i, got, want)
+		}
+		if got, want := sreq.Sequence, creq.Sequence; got != want {
+			t.Fatalf("case%d: Sequence: %v != %v", i, got, want)
+		}
+		if got, want := sreq.TraceID, creq.TraceID; got != want {
+			t.Fatalf("case%d: Sequence: %v != %v", i, got, want)
+		}
+		if got, want := sreq.ClientName, creq.ClientName; got != want {
+			t.Fatalf("case%d: Sequence: %v != %v", i, got, want)
+		}
+		if got, want := sreq.Verbose, creq.Verbose; got != want {
+			t.Fatalf("case%d: Sequence: %v != %v", i, got, want)
+		}
+		if got, want := sreq.Cancel, creq.Cancel; got != want {
+			t.Fatalf("case%d: Sequence: %v != %v", i, got, want)
+		}
+		if creq.Body != nil {
+			if got, want := sreq.Body, body; !bytes.Equal(got, want) {
+				t.Fatalf("case%d: Body: %s != %s", i, got, want)
+			}
+		}
+	}
+}
+
+func TestResponse(t *testing.T) {
+	tests := []serverResponse{
+		{
+			Method:      "Add",
+			Sequence:    1,
+			Code:        0,
+			Message:     "",
+			Description: "",
+			ServerName:  "",
+			Body:        &Reply{C: 3},
+		},
+		{
+			Method:      "Add",
+			Sequence:    1,
+			Code:        1,
+			Message:     "Message",
+			Description: "Description",
+			ServerName:  "ServerName",
+			Body:        nil,
+		},
+		{
+			Method:   "Ping",
+			Sequence: 2,
+			Code:     0,
+			Body:     "hello",
+		},
+	}
+	for i, sresp := range tests {
+		var cresp clientResponse
+		data, err := json.Marshal(sresp)
+		if err != nil {
+			t.Fatalf("case%d: json marshal: %v", i, err)
+		}
+		if err = json.Unmarshal(data, &cresp); err != nil {
+			t.Fatalf("case%d: json umarshal: %v", i, err)
+		}
+		body, err := json.Marshal(sresp.Body)
+		if err != nil {
+			t.Fatalf("case%d: json marshal body: %v", i, err)
+		}
+
+		if got, want := cresp.Method, sresp.Method; got != want {
+			t.Fatalf("case%d: Method: %v != %v", got, want)
+		}
+		if got, want := cresp.Sequence, sresp.Sequence; got != want {
+			t.Fatalf("case%d: Sequence: %v != %v", got, want)
+		}
+		if got, want := cresp.Code, sresp.Code; got != want {
+			t.Fatalf("case%d: Code: %v != %v", got, want)
+		}
+		if got, want := cresp.Message, sresp.Message; got != want {
+			t.Fatalf("case%d: Message: %v != %v", got, want)
+		}
+		if got, want := cresp.Description, sresp.Description; got != want {
+			t.Fatalf("case%d: Description: %v != %v", got, want)
+		}
+		if got, want := cresp.ServerName, sresp.ServerName; got != want {
+			t.Fatalf("case%d: Method: %v != %v", got, want)
+		}
+		if sresp.Body != nil {
+			if got, want := cresp.Body, body; !bytes.Equal(got, want) {
+				t.Fatalf("case%d: Body: %s != %s", i, got, want)
+			}
+		}
+	}
+}
 
 type CompositeReadWriters struct {
 	master  io.ReadWriter
@@ -31,14 +178,6 @@ func (p *CompositeReadWriters) Write(b []byte) (n int, err error) {
 
 func (p *CompositeReadWriters) Read(b []byte) (n int, err error) {
 	return p.master.Read(b)
-}
-
-type Args struct {
-	A, B int
-}
-
-type Reply struct {
-	C int
 }
 
 func TestWriteReadRequest(t *testing.T) {
@@ -70,6 +209,18 @@ func TestWriteReadRequest(t *testing.T) {
 		},
 		{
 			h: codec.RequestHeader{
+				Method:     "Add",
+				Sequence:   1,
+				TraceID:    "1",
+				ClientName: "client-1",
+				Verbose:    true,
+				Cancel:     true,
+			},
+			x: nil,
+			y: nil,
+		},
+		{
+			h: codec.RequestHeader{
 				Method:     "Ping",
 				Sequence:   2,
 				TraceID:    "2",
@@ -91,7 +242,6 @@ func TestWriteReadRequest(t *testing.T) {
 			y: nil,
 		},
 	}
-	var h codec.RequestHeader
 	for i, tt := range tests {
 		go func(h *codec.RequestHeader, x interface{}) {
 			if err := c.WriteRequest(h, x); err != nil {
@@ -99,6 +249,7 @@ func TestWriteReadRequest(t *testing.T) {
 			}
 		}(&tt.h, tt.x)
 
+		var h codec.RequestHeader
 		if err := s.ReadRequestHeader(&h); err != nil {
 			t.Fatalf("read request header: %v", err)
 		}
@@ -137,6 +288,20 @@ func TestWriteReadResponse(t *testing.T) {
 			},
 			x: &Reply{C: 3},
 			y: &Reply{},
+		},
+		{
+			h: codec.ResponseHeader{
+				Method:   "Add",
+				Sequence: 1,
+				Error: codec.Error{
+					Code:        1,
+					Message:     "Message",
+					Description: "Description",
+					ServerName:  "ServerName",
+				},
+			},
+			x: nil,
+			y: nil,
 		},
 		{
 			h: codec.ResponseHeader{

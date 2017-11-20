@@ -12,7 +12,8 @@ type serverRequest struct {
 	Sequence   uint64          `json:"Sequence"`
 	TraceID    string          `json:"TraceID"`
 	ClientName string          `json:"ClientName"`
-	Verbose    bool            `json:"Verbose"`
+	Verbose    bool            `json:"Verbose,omitempty"`
+	Cancel     bool            `json:"Cancel,omitempty"`
 	Body       json.RawMessage `json:"Body,omitempty"`
 }
 
@@ -40,7 +41,19 @@ func NewServerCodec(rw io.ReadWriter) codec.ServerCodec {
 	}
 }
 
+func (c *serverCodec) reset() {
+	c.req.Method = ""
+	c.req.Sequence = 0
+	c.req.TraceID = ""
+	c.req.ClientName = ""
+	c.req.Verbose = false
+	c.req.Cancel = false
+	c.req.Body = nil
+}
+
 func (c *serverCodec) ReadRequestHeader(h *codec.RequestHeader) error {
+	c.reset()
+
 	if err := c.dec.Decode(&c.req); err != nil {
 		return err
 	}
@@ -50,6 +63,7 @@ func (c *serverCodec) ReadRequestHeader(h *codec.RequestHeader) error {
 	h.TraceID = c.req.TraceID
 	h.ClientName = c.req.ClientName
 	h.Verbose = c.req.Verbose
+	h.Cancel = c.req.Cancel
 	return nil
 }
 

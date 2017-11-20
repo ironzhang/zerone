@@ -12,7 +12,8 @@ type clientRequest struct {
 	Sequence   uint64      `json:"Sequence"`
 	TraceID    string      `json:"TraceID"`
 	ClientName string      `json:"ClientName"`
-	Verbose    bool        `json:"Verbose"`
+	Verbose    bool        `json:"Verbose,omitempty"`
+	Cancel     bool        `json:"Cancel,omitempty"`
 	Body       interface{} `json:"Body,omitempty"`
 }
 
@@ -46,11 +47,24 @@ func (c *clientCodec) WriteRequest(h *codec.RequestHeader, x interface{}) error 
 	c.req.TraceID = h.TraceID
 	c.req.ClientName = h.ClientName
 	c.req.Verbose = h.Verbose
+	c.req.Cancel = h.Cancel
 	c.req.Body = x
 	return c.enc.Encode(&c.req)
 }
 
+func (c *clientCodec) reset() {
+	c.resp.Method = ""
+	c.resp.Sequence = 0
+	c.resp.Code = 0
+	c.resp.Message = ""
+	c.resp.Description = ""
+	c.resp.ServerName = ""
+	c.resp.Body = nil
+}
+
 func (c *clientCodec) ReadResponseHeader(h *codec.ResponseHeader) error {
+	c.reset()
+
 	if err := c.dec.Decode(&c.resp); err != nil {
 		return err
 	}
