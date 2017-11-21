@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"unicode"
@@ -89,13 +90,7 @@ func parseMethod(m reflect.Method) (*method, error) {
 	return &method{meth: m, args: args, reply: reply}, nil
 }
 
-type service struct {
-	rcvr    reflect.Value
-	methods map[string]*method
-}
-
-func parseService(rcvr reflect.Value) (*service, error) {
-	typ := rcvr.Type()
+func parseMethods(typ reflect.Type) (map[string]*method, error) {
 	methods := make(map[string]*method)
 	for i := 0; i < typ.NumMethod(); i++ {
 		m := typ.Method(i)
@@ -108,5 +103,41 @@ func parseService(rcvr reflect.Value) (*service, error) {
 		}
 		methods[m.Name] = mt
 	}
-	return &service{rcvr: rcvr, methods: methods}, nil
+	return methods, nil
+}
+
+type service struct {
+	name    string
+	rcvr    reflect.Value
+	methods map[string]*method
+}
+
+func parseService(name string, rcvr reflect.Value) (*service, error) {
+	typ := rcvr.Type()
+	methods, err := parseMethods(typ)
+	if err != nil {
+		return nil, err
+	}
+	if len(methods) <= 0 {
+		var str string
+		methods, _ = parseMethods(reflect.PtrTo(typ))
+		if len(methods) <= 0 {
+			str = fmt.Sprintf("type %s has no exported methods of suitable type", typ.Name())
+		} else {
+			str = fmt.Sprintf("type %s has no exported methods of suitable type (hint: pass a pointer to value of that type)", typ.Name())
+		}
+		return nil, errors.New(str)
+	}
+	return &service{name: name, rcvr: rcvr, methods: methods}, nil
+}
+
+func newReflectValue(t reflect.Type) reflect.Value {
+	if t.Kind() == reflect.Ptr {
+		return reflect.New(t.Elem())
+	}
+	return reflect.New(t)
+}
+
+func isNilInterface(t reflect.Type) bool {
+	return t == typeOfNilInterface
 }
