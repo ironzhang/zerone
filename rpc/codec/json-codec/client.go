@@ -8,23 +8,23 @@ import (
 )
 
 type clientRequest struct {
-	Method     string      `json:"Method"`
-	Sequence   uint64      `json:"Sequence"`
-	TraceID    string      `json:"TraceID"`
-	ClientName string      `json:"ClientName"`
-	Verbose    bool        `json:"Verbose,omitempty"`
-	Cancel     bool        `json:"Cancel,omitempty"`
-	Body       interface{} `json:"Body,omitempty"`
+	ServiceMethod string      `json:"ServiceMethod"`
+	Sequence      uint64      `json:"Sequence"`
+	TraceID       string      `json:"TraceID"`
+	ClientName    string      `json:"ClientName"`
+	Verbose       bool        `json:"Verbose,omitempty"`
+	Cancel        bool        `json:"Cancel,omitempty"`
+	Body          interface{} `json:"Body,omitempty"`
 }
 
 type clientResponse struct {
-	Method      string          `json:"Method"`
-	Sequence    uint64          `json:"Sequence"`
-	Code        int             `json:"Code"`
-	Message     string          `json:"Message,omitempty"`
-	Description string          `json:"Description,omitempty"`
-	ServerName  string          `json:"ServerName,omitempty"`
-	Body        json.RawMessage `json:"Body,omitempty"`
+	ServiceMethod string          `json:"ServiceMethod"`
+	Sequence      uint64          `json:"Sequence"`
+	Code          int             `json:"Code"`
+	Message       string          `json:"Message,omitempty"`
+	Description   string          `json:"Description,omitempty"`
+	ServerName    string          `json:"ServerName,omitempty"`
+	Body          json.RawMessage `json:"Body,omitempty"`
 }
 
 type clientCodec struct {
@@ -42,7 +42,7 @@ func NewClientCodec(rw io.ReadWriter) codec.ClientCodec {
 }
 
 func (c *clientCodec) WriteRequest(h *codec.RequestHeader, x interface{}) error {
-	c.req.Method = h.Method
+	c.req.ServiceMethod = h.ServiceMethod
 	c.req.Sequence = h.Sequence
 	c.req.TraceID = h.TraceID
 	c.req.ClientName = h.ClientName
@@ -53,7 +53,7 @@ func (c *clientCodec) WriteRequest(h *codec.RequestHeader, x interface{}) error 
 }
 
 func (c *clientCodec) reset() {
-	c.resp.Method = ""
+	c.resp.ServiceMethod = ""
 	c.resp.Sequence = 0
 	c.resp.Code = 0
 	c.resp.Message = ""
@@ -69,7 +69,7 @@ func (c *clientCodec) ReadResponseHeader(h *codec.ResponseHeader) error {
 		return err
 	}
 
-	h.Method = c.resp.Method
+	h.ServiceMethod = c.resp.ServiceMethod
 	h.Sequence = c.resp.Sequence
 	h.Error.Code = c.resp.Code
 	h.Error.Message = c.resp.Message

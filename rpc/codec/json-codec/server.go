@@ -8,23 +8,23 @@ import (
 )
 
 type serverRequest struct {
-	Method     string          `json:"Method"`
-	Sequence   uint64          `json:"Sequence"`
-	TraceID    string          `json:"TraceID"`
-	ClientName string          `json:"ClientName"`
-	Verbose    bool            `json:"Verbose,omitempty"`
-	Cancel     bool            `json:"Cancel,omitempty"`
-	Body       json.RawMessage `json:"Body,omitempty"`
+	ServiceMethod string          `json:"ServiceMethod"`
+	Sequence      uint64          `json:"Sequence"`
+	TraceID       string          `json:"TraceID"`
+	ClientName    string          `json:"ClientName"`
+	Verbose       bool            `json:"Verbose,omitempty"`
+	Cancel        bool            `json:"Cancel,omitempty"`
+	Body          json.RawMessage `json:"Body,omitempty"`
 }
 
 type serverResponse struct {
-	Method      string      `json:"Method"`
-	Sequence    uint64      `json:"Sequence"`
-	Code        int         `json:"Code"`
-	Message     string      `json:"Message,omitempty"`
-	Description string      `json:"Description,omitempty"`
-	ServerName  string      `json:"ServerName,omitempty"`
-	Body        interface{} `json:"Body,omitempty"`
+	ServiceMethod string      `json:"ServiceMethod"`
+	Sequence      uint64      `json:"Sequence"`
+	Code          int         `json:"Code"`
+	Message       string      `json:"Message,omitempty"`
+	Description   string      `json:"Description,omitempty"`
+	ServerName    string      `json:"ServerName,omitempty"`
+	Body          interface{} `json:"Body,omitempty"`
 }
 
 type serverCodec struct {
@@ -42,7 +42,7 @@ func NewServerCodec(rw io.ReadWriter) codec.ServerCodec {
 }
 
 func (c *serverCodec) reset() {
-	c.req.Method = ""
+	c.req.ServiceMethod = ""
 	c.req.Sequence = 0
 	c.req.TraceID = ""
 	c.req.ClientName = ""
@@ -58,7 +58,7 @@ func (c *serverCodec) ReadRequestHeader(h *codec.RequestHeader) error {
 		return err
 	}
 
-	h.Method = c.req.Method
+	h.ServiceMethod = c.req.ServiceMethod
 	h.Sequence = c.req.Sequence
 	h.TraceID = c.req.TraceID
 	h.ClientName = c.req.ClientName
@@ -75,7 +75,7 @@ func (c *serverCodec) ReadRequestBody(x interface{}) error {
 }
 
 func (c *serverCodec) WriteResponse(h *codec.ResponseHeader, x interface{}) error {
-	c.resp.Method = h.Method
+	c.resp.ServiceMethod = h.ServiceMethod
 	c.resp.Sequence = h.Sequence
 	c.resp.Code = h.Error.Code
 	c.resp.Message = h.Error.Message
