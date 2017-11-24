@@ -74,9 +74,9 @@ func checkOuts(m reflect.Method) error {
 }
 
 type method struct {
-	meth  reflect.Method
-	args  reflect.Type
-	reply reflect.Type
+	method reflect.Method
+	args   reflect.Type
+	reply  reflect.Type
 }
 
 func parseMethod(m reflect.Method) (*method, error) {
@@ -87,7 +87,7 @@ func parseMethod(m reflect.Method) (*method, error) {
 	if err = checkOuts(m); err != nil {
 		return nil, err
 	}
-	return &method{meth: m, args: args, reply: reply}, nil
+	return &method{method: m, args: args, reply: reply}, nil
 }
 
 func parseMethods(typ reflect.Type) (map[string]*method, error) {
@@ -97,11 +97,11 @@ func parseMethods(typ reflect.Type) (map[string]*method, error) {
 		if m.PkgPath != "" {
 			continue
 		}
-		mt, err := parseMethod(m)
+		meth, err := parseMethod(m)
 		if err != nil {
 			return nil, err
 		}
-		methods[m.Name] = mt
+		methods[m.Name] = meth
 	}
 	return methods, nil
 }
@@ -129,15 +129,4 @@ func parseService(name string, rcvr reflect.Value) (*service, error) {
 		return nil, errors.New(str)
 	}
 	return &service{name: name, rcvr: rcvr, methods: methods}, nil
-}
-
-func newReflectValue(t reflect.Type) reflect.Value {
-	if t.Kind() == reflect.Ptr {
-		return reflect.New(t.Elem())
-	}
-	return reflect.New(t)
-}
-
-func isNilInterface(t reflect.Type) bool {
-	return t == typeOfNilInterface
 }
