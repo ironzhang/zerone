@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -10,6 +11,7 @@ import (
 )
 
 type Server struct {
+	name       string
 	serviceMap sync.Map
 }
 
@@ -45,7 +47,23 @@ func (s *Server) register(rcvr interface{}, name string) error {
 	return nil
 }
 
-func (s *Server) serveCodec(codec codec.ServerCodec) {
+func (s *Server) serveCodec(c codec.ServerCodec) {
+	for {
+		req, method, rcvr, args, reply, err := s.readRequest(c)
+		if err != nil {
+			if req != nil {
+				s.writeResponse(c, req, reply, err)
+			}
+		}
+
+		ctx := context.Background()
+		rets := method.Func.Call([]reflect.Value{rcvr, reflect.ValueOf(ctx), args, reply})
+		erri := rets[0].Interface()
+		if erri != nil {
+			err = erri.(error)
+		}
+		s.writeResponse(c, req, reply, err)
+	}
 }
 
 func (s *Server) readRequest(c codec.ServerCodec) (req *codec.RequestHeader, method reflect.Method, rcvr, args, reply reflect.Value, err error) {
@@ -73,7 +91,17 @@ func (s *Server) readRequest(c codec.ServerCodec) (req *codec.RequestHeader, met
 	return
 }
 
-func (s *Server) writeRequest(c codec.ServerCodec) {
+func (s *Server) writeResponse(c codec.ServerCodec, req *codec.RequestHeader, reply interface{}, err error) error {
+	var resp codec.ResponseHeader
+	resp.ServiceMethod = req.ServiceMethod
+	resp.Sequence = req.Sequence
+	if err != nil {
+		resp.Error.Code = -1
+		resp.Error.Message = "rpc error"
+		resp.Error.Description = err.Error()
+		resp.Error.ServerName = s.name
+	}
+	return c.WriteResponse(&resp, reply)
 }
 
 func (s *Server) lookupServiceMethod(serviceName, methodName string) (reflect.Value, *method, error) {
