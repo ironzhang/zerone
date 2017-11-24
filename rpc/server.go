@@ -3,6 +3,7 @@ package rpc
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"sync"
 
 	"github.com/ironzhang/zerone/rpc/codec"
@@ -45,42 +46,53 @@ func (s *Server) register(rcvr interface{}, name string) error {
 }
 
 func (s *Server) serveCodec(codec codec.ServerCodec) {
-	for {
-	}
 }
 
-func (s *Server) readRequest(c codec.ServerCodec) (err error) {
-	//	var h codec.RequestHeader
-	//	if err = c.ReadRequestHeader(&h); err != nil {
-	//		return err
-	//	}
-	//
-	//	dot := strings.LastIndex(h.Method, ".")
-	//	if dot < 0 {
-	//		return fmt.Errorf("rpc: service/method request ill-formed: %s", h.Method)
-	//	}
-	//	serviceName := h.Method[:dot]
-	//	methodName := h.Method[dot+1:]
-	//
-	//	svci, ok := s.serviceMap.Load(serviceName)
-	//	if !ok {
-	//		return fmt.Errorf("rpc: can't find service %s", h.Method)
-	//	}
-	//	svc := svci.(*service)
-	//	m, ok := svc.methods[methodName]
-	//	if !ok {
-	//		return fmt.Errorf("rpc: can't find method: %s", h.Method)
-	//	}
-	//
-	//	var args reflect.Value
-	//	if m.args.Kind() == reflect.Ptr {
-	//		args = reflect.New(m.args.Elem())
-	//	} else {
-	//		args = reflect.New(m.args)
-	//	}
-	//	if err = c.ReadRequestBody(args.Interface()); err != nil {
-	//		return err
-	//	}
+func (s *Server) readRequest(c codec.ServerCodec) (req *codec.RequestHeader, method reflect.Method, rcvr, args, reply reflect.Value, err error) {
+	var h codec.RequestHeader
+	if err = c.ReadRequestHeader(&h); err != nil {
+		return
+	}
+	req = &h
 
-	return nil
+	serviceName, methodName, err := parseServiceMethod(h.ServiceMethod)
+	if err != nil {
+		return
+	}
+	rcvr, meth, err := s.lookupServiceMethod(serviceName, methodName)
+	if err != nil {
+		return
+	}
+
+	args = meth.newArgsValue()
+	if err = c.ReadRequestBody(args.Interface()); err != nil {
+		return
+	}
+	reply = meth.newReplyValue()
+
+	return
+}
+
+func (s *Server) writeRequest(c codec.ServerCodec) {
+}
+
+func (s *Server) lookupServiceMethod(serviceName, methodName string) (reflect.Value, *method, error) {
+	svci, ok := s.serviceMap.Load(serviceName)
+	if !ok {
+		return reflect.Value{}, nil, fmt.Errorf("can't find service %s.%s", serviceName, methodName)
+	}
+	svc := svci.(*service)
+	meth, ok := svc.methods[methodName]
+	if !ok {
+		return reflect.Value{}, nil, fmt.Errorf("can't find method %s.%s", serviceName, methodName)
+	}
+	return svc.rcvr, meth, nil
+}
+
+func parseServiceMethod(serviceMethod string) (string, string, error) {
+	dot := strings.LastIndex(serviceMethod, ".")
+	if dot < 0 {
+		return "", "", fmt.Errorf("service/method request ill-formed: %s", serviceMethod)
+	}
+	return serviceMethod[:dot], serviceMethod[dot+1:], nil
 }

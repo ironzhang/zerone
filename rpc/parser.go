@@ -79,6 +79,24 @@ type method struct {
 	reply  reflect.Type
 }
 
+func (m *method) newArgsValue() reflect.Value {
+	if m.args.Kind() == reflect.Ptr {
+		return reflect.New(m.args.Elem())
+	}
+	return reflect.New(m.args)
+}
+
+func (m *method) newReplyValue() reflect.Value {
+	value := reflect.New(m.reply.Elem())
+	switch m.reply.Elem().Kind() {
+	case reflect.Map:
+		value.Elem().Set(reflect.MakeMap(m.reply.Elem()))
+	case reflect.Slice:
+		value.Elem().Set(reflect.MakeSlice(m.reply.Elem(), 0, 0))
+	}
+	return value
+}
+
 func parseMethod(m reflect.Method) (*method, error) {
 	_, _, args, reply, err := checkIns(m)
 	if err != nil {
