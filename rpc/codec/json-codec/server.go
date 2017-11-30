@@ -21,8 +21,8 @@ type serverResponse struct {
 	ServiceMethod string      `json:"ServiceMethod"`
 	Sequence      uint64      `json:"Sequence"`
 	Code          int         `json:"Code"`
-	Desc          string      `json:"Description,omitempty"`
-	Cause         string      `json:"Message,omitempty"`
+	Desc          string      `json:"Desc,omitempty"`
+	Cause         string      `json:"Cause,omitempty"`
 	ServerName    string      `json:"ServerName,omitempty"`
 	Body          interface{} `json:"Body,omitempty"`
 }

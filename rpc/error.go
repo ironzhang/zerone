@@ -3,9 +3,7 @@ package rpc
 import (
 	"fmt"
 
-	"google.golang.org/grpc/codes"
-
-	//"google.golang.org/grpc/codes"
+	"github.com/ironzhang/zerone/rpc/codes"
 )
 
 type ErrorCode interface {
