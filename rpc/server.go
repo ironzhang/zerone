@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/ironzhang/zerone/rpc/codec"
+	"github.com/ironzhang/zerone/rpc/codes"
 )
 
 type Server struct {
@@ -96,9 +97,9 @@ func (s *Server) writeResponse(c codec.ServerCodec, req *codec.RequestHeader, re
 	resp.ServiceMethod = req.ServiceMethod
 	resp.Sequence = req.Sequence
 	if err != nil {
-		resp.Error.Code = -1
-		resp.Error.Message = "rpc error"
-		resp.Error.Description = err.Error()
+		resp.Error.Code = int(codes.Internal)
+		resp.Error.Desc = codes.Internal.String()
+		resp.Error.Cause = err.Error()
 		resp.Error.ServerName = s.name
 	}
 	return c.WriteResponse(&resp, reply)
