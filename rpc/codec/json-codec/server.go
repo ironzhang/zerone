@@ -27,21 +27,23 @@ type serverResponse struct {
 	Body          interface{} `json:"Body,omitempty"`
 }
 
-type serverCodec struct {
+var _ codec.ServerCodec = &ServerCodec{}
+
+type ServerCodec struct {
 	enc  *json.Encoder
 	dec  *json.Decoder
 	req  serverRequest
 	resp serverResponse
 }
 
-func NewServerCodec(rw io.ReadWriter) codec.ServerCodec {
-	return &serverCodec{
+func NewServerCodec(rw io.ReadWriter) *ServerCodec {
+	return &ServerCodec{
 		enc: json.NewEncoder(rw),
 		dec: json.NewDecoder(rw),
 	}
 }
 
-func (c *serverCodec) reset() {
+func (c *ServerCodec) reset() {
 	c.req.ServiceMethod = ""
 	c.req.Sequence = 0
 	c.req.TraceID = ""
@@ -51,7 +53,7 @@ func (c *serverCodec) reset() {
 	c.req.Body = nil
 }
 
-func (c *serverCodec) ReadRequestHeader(h *codec.RequestHeader) error {
+func (c *ServerCodec) ReadRequestHeader(h *codec.RequestHeader) error {
 	c.reset()
 
 	if err := c.dec.Decode(&c.req); err != nil {
@@ -67,14 +69,14 @@ func (c *serverCodec) ReadRequestHeader(h *codec.RequestHeader) error {
 	return nil
 }
 
-func (c *serverCodec) ReadRequestBody(x interface{}) error {
+func (c *ServerCodec) ReadRequestBody(x interface{}) error {
 	if x == nil {
 		return nil
 	}
 	return json.Unmarshal(c.req.Body, x)
 }
 
-func (c *serverCodec) WriteResponse(h *codec.ResponseHeader, x interface{}) error {
+func (c *ServerCodec) WriteResponse(h *codec.ResponseHeader, x interface{}) error {
 	c.resp.ServiceMethod = h.ServiceMethod
 	c.resp.Sequence = h.Sequence
 	c.resp.Code = h.Error.Code
