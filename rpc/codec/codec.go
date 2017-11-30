@@ -10,10 +10,10 @@ type RequestHeader struct {
 }
 
 type Error struct {
-	Code        int    // 错误码
-	Message     string // 错误消息
-	Description string // 错误的具体信息
-	ServerName  string // 产生错误的服务端名称
+	Code       int    // 错误码
+	Desc       string // 错误描述
+	Cause      string // 错误原因
+	ServerName string // 产生错误的服务端名称
 }
 
 type ResponseHeader struct {

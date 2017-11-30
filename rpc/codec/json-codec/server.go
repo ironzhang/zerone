@@ -21,8 +21,8 @@ type serverResponse struct {
 	ServiceMethod string      `json:"ServiceMethod"`
 	Sequence      uint64      `json:"Sequence"`
 	Code          int         `json:"Code"`
-	Message       string      `json:"Message,omitempty"`
-	Description   string      `json:"Description,omitempty"`
+	Desc          string      `json:"Description,omitempty"`
+	Cause         string      `json:"Message,omitempty"`
 	ServerName    string      `json:"ServerName,omitempty"`
 	Body          interface{} `json:"Body,omitempty"`
 }
@@ -78,8 +78,8 @@ func (c *serverCodec) WriteResponse(h *codec.ResponseHeader, x interface{}) erro
 	c.resp.ServiceMethod = h.ServiceMethod
 	c.resp.Sequence = h.Sequence
 	c.resp.Code = h.Error.Code
-	c.resp.Message = h.Error.Message
-	c.resp.Description = h.Error.Description
+	c.resp.Cause = h.Error.Cause
+	c.resp.Desc = h.Error.Desc
 	c.resp.ServerName = h.Error.ServerName
 	c.resp.Body = x
 	return c.enc.Encode(&c.resp)
