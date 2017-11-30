@@ -21,8 +21,8 @@ type clientResponse struct {
 	ServiceMethod string          `json:"ServiceMethod"`
 	Sequence      uint64          `json:"Sequence"`
 	Code          int             `json:"Code"`
-	Message       string          `json:"Message,omitempty"`
-	Description   string          `json:"Description,omitempty"`
+	Desc          string          `json:"Description,omitempty"`
+	Cause         string          `json:"Message,omitempty"`
 	ServerName    string          `json:"ServerName,omitempty"`
 	Body          json.RawMessage `json:"Body,omitempty"`
 }
@@ -56,8 +56,8 @@ func (c *clientCodec) reset() {
 	c.resp.ServiceMethod = ""
 	c.resp.Sequence = 0
 	c.resp.Code = 0
-	c.resp.Message = ""
-	c.resp.Description = ""
+	c.resp.Cause = ""
+	c.resp.Desc = ""
 	c.resp.ServerName = ""
 	c.resp.Body = nil
 }
@@ -72,8 +72,8 @@ func (c *clientCodec) ReadResponseHeader(h *codec.ResponseHeader) error {
 	h.ServiceMethod = c.resp.ServiceMethod
 	h.Sequence = c.resp.Sequence
 	h.Error.Code = c.resp.Code
-	h.Error.Message = c.resp.Message
-	h.Error.Description = c.resp.Description
+	h.Error.Cause = c.resp.Cause
+	h.Error.Desc = c.resp.Desc
 	h.Error.ServerName = c.resp.ServerName
 	return nil
 }
