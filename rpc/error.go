@@ -74,7 +74,7 @@ func (e rpcError) Cause() error {
 
 func (e rpcError) Error() string {
 	if e.module == "" {
-		return fmt.Sprintf("code=%d, desc=%s, cause=%v", e.code, e.code.String(), e.cause)
+		return fmt.Sprintf("{code: %d, desc: %s, cause: %v}", e.code, e.code.String(), e.cause)
 	}
-	return fmt.Sprintf("module=%s, code=%d, desc=%s, cause=%v", e.module, e.code, e.code.String(), e.cause)
+	return fmt.Sprintf("{module: %s, code: %d, desc: %s, cause: %v}", e.module, e.code, e.code.String(), e.cause)
 }
