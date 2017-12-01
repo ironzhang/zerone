@@ -23,7 +23,7 @@ type clientResponse struct {
 	Code          int             `json:"Code"`
 	Desc          string          `json:"Desc,omitempty"`
 	Cause         string          `json:"Cause,omitempty"`
-	ServerName    string          `json:"ServerName,omitempty"`
+	Module        string          `json:"Module,omitempty"`
 	Body          json.RawMessage `json:"Body,omitempty"`
 }
 
@@ -60,7 +60,7 @@ func (c *ClientCodec) reset() {
 	c.resp.Code = 0
 	c.resp.Cause = ""
 	c.resp.Desc = ""
-	c.resp.ServerName = ""
+	c.resp.Module = ""
 	c.resp.Body = nil
 }
 
@@ -76,7 +76,7 @@ func (c *ClientCodec) ReadResponseHeader(h *codec.ResponseHeader) error {
 	h.Error.Code = c.resp.Code
 	h.Error.Cause = c.resp.Cause
 	h.Error.Desc = c.resp.Desc
-	h.Error.ServerName = c.resp.ServerName
+	h.Error.Module = c.resp.Module
 	return nil
 }
 

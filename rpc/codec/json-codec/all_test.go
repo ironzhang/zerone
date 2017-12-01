@@ -98,7 +98,7 @@ func TestResponse(t *testing.T) {
 			Code:          0,
 			Cause:         "",
 			Desc:          "",
-			ServerName:    "",
+			Module:        "",
 			Body:          &Reply{C: 3},
 		},
 		{
@@ -107,7 +107,7 @@ func TestResponse(t *testing.T) {
 			Code:          1,
 			Cause:         "Message",
 			Desc:          "Description",
-			ServerName:    "ServerName",
+			Module:        "ServerName",
 			Body:          nil,
 		},
 		{
@@ -146,7 +146,7 @@ func TestResponse(t *testing.T) {
 		if got, want := cresp.Desc, sresp.Desc; got != want {
 			t.Fatalf("case%d: Description: %v != %v", got, want)
 		}
-		if got, want := cresp.ServerName, sresp.ServerName; got != want {
+		if got, want := cresp.Module, sresp.Module; got != want {
 			t.Fatalf("case%d: ServerName: %v != %v", got, want)
 		}
 		if sresp.Body != nil {
@@ -294,10 +294,10 @@ func TestWriteReadResponse(t *testing.T) {
 				ServiceMethod: "Add",
 				Sequence:      1,
 				Error: codec.Error{
-					Code:       1,
-					Cause:      "Message",
-					Desc:       "Description",
-					ServerName: "ServerName",
+					Code:   1,
+					Cause:  "Message",
+					Desc:   "Description",
+					Module: "ServerName",
 				},
 			},
 			x: nil,
@@ -316,10 +316,10 @@ func TestWriteReadResponse(t *testing.T) {
 				ServiceMethod: "Ping",
 				Sequence:      3,
 				Error: codec.Error{
-					Code:       1,
-					Cause:      "Message",
-					Desc:       "Description",
-					ServerName: "ServerName",
+					Code:   1,
+					Cause:  "Message",
+					Desc:   "Description",
+					Module: "ServerName",
 				},
 			},
 			x: nil,

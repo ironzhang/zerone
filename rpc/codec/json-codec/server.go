@@ -23,7 +23,7 @@ type serverResponse struct {
 	Code          int         `json:"Code"`
 	Desc          string      `json:"Desc,omitempty"`
 	Cause         string      `json:"Cause,omitempty"`
-	ServerName    string      `json:"ServerName,omitempty"`
+	Module        string      `json:"Module,omitempty"`
 	Body          interface{} `json:"Body,omitempty"`
 }
 
@@ -82,7 +82,7 @@ func (c *ServerCodec) WriteResponse(h *codec.ResponseHeader, x interface{}) erro
 	c.resp.Code = h.Error.Code
 	c.resp.Cause = h.Error.Cause
 	c.resp.Desc = h.Error.Desc
-	c.resp.ServerName = h.Error.ServerName
+	c.resp.Module = h.Error.Module
 	c.resp.Body = x
 	return c.enc.Encode(&c.resp)
 }

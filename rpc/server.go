@@ -11,6 +11,13 @@ import (
 	"github.com/ironzhang/zerone/rpc/codes"
 )
 
+type serverRequest struct {
+	serviceMethod string
+	serviceName   string
+	methodName    string
+	sequence      uint64
+}
+
 type Server struct {
 	name       string
 	serviceMap sync.Map
@@ -50,9 +57,9 @@ func (s *Server) register(rcvr interface{}, name string) error {
 
 func (s *Server) serveCodec(c codec.ServerCodec) {
 	for {
-		req, method, rcvr, args, reply, err := s.readRequest(c)
+		response, req, method, rcvr, args, reply, err := s.readRequest(c)
 		if err != nil {
-			if req != nil {
+			if response {
 				s.writeResponse(c, req, reply, err)
 			}
 		}
@@ -67,22 +74,28 @@ func (s *Server) serveCodec(c codec.ServerCodec) {
 	}
 }
 
-func (s *Server) readRequest(c codec.ServerCodec) (req *codec.RequestHeader, method reflect.Method, rcvr, args, reply reflect.Value, err error) {
+func (s *Server) readRequest(c codec.ServerCodec) (response bool, req serverRequest, method reflect.Method, rcvr, args, reply reflect.Value, err error) {
 	var h codec.RequestHeader
 	if err = c.ReadRequestHeader(&h); err != nil {
 		return
 	}
-	req = &h
 
-	serviceName, methodName, err := parseServiceMethod(h.ServiceMethod)
+	response = true
+	req.serviceMethod = h.ServiceMethod
+	req.sequence = h.Sequence
+
+	req.serviceName, req.methodName, err = parseServiceMethod(req.serviceMethod)
 	if err != nil {
+		c.ReadRequestBody(nil)
 		return
 	}
-	rcvr, meth, err := s.lookupServiceMethod(serviceName, methodName)
+	rcvr, meth, err := s.lookupServiceMethod(req.serviceName, req.methodName)
 	if err != nil {
+		c.ReadRequestBody(nil)
 		return
 	}
 
+	method = meth.method
 	args = meth.newArgsValue()
 	if err = c.ReadRequestBody(args.Interface()); err != nil {
 		return
@@ -92,15 +105,32 @@ func (s *Server) readRequest(c codec.ServerCodec) (req *codec.RequestHeader, met
 	return
 }
 
-func (s *Server) writeResponse(c codec.ServerCodec, req *codec.RequestHeader, reply interface{}, err error) error {
+func (s *Server) writeResponse(c codec.ServerCodec, req serverRequest, reply interface{}, err error) error {
 	var resp codec.ResponseHeader
-	resp.ServiceMethod = req.ServiceMethod
-	resp.Sequence = req.Sequence
+	resp.ServiceMethod = req.serviceMethod
+	resp.Sequence = req.sequence
 	if err != nil {
-		resp.Error.Code = int(codes.Internal)
-		resp.Error.Desc = codes.Internal.String()
-		resp.Error.Cause = err.Error()
-		resp.Error.ServerName = s.name
+		code := codes.Unknown
+		if e, ok := err.(ErrorCode); ok {
+			code = e.Code()
+		}
+		cause := err.Error()
+		if e, ok := err.(ErrorCause); ok {
+			if ce := e.Cause(); ce != nil {
+				cause = ce.Error()
+			}
+		}
+		module := req.serviceName
+		if e, ok := err.(ErrorModule); ok {
+			if m := e.Module(); m != "" {
+				module = m
+			}
+		}
+
+		resp.Error.Code = int(code)
+		resp.Error.Desc = code.String()
+		resp.Error.Cause = cause
+		resp.Error.Module = module
 	}
 	return c.WriteResponse(&resp, reply)
 }
