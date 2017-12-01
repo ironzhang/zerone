@@ -19,7 +19,6 @@ type serverRequest struct {
 }
 
 type Server struct {
-	name       string
 	serviceMap sync.Map
 }
 
@@ -77,6 +76,7 @@ func (s *Server) serveCodec(c codec.ServerCodec) {
 func (s *Server) readRequest(c codec.ServerCodec) (response bool, req serverRequest, method reflect.Method, rcvr, args, reply reflect.Value, err error) {
 	var h codec.RequestHeader
 	if err = c.ReadRequestHeader(&h); err != nil {
+		err = NewError(codes.InvalidHeader, err)
 		return
 	}
 
@@ -86,11 +86,13 @@ func (s *Server) readRequest(c codec.ServerCodec) (response bool, req serverRequ
 
 	req.serviceName, req.methodName, err = parseServiceMethod(req.serviceMethod)
 	if err != nil {
+		err = NewError(codes.InvalidHeader, err)
 		c.ReadRequestBody(nil)
 		return
 	}
 	rcvr, meth, err := s.lookupServiceMethod(req.serviceName, req.methodName)
 	if err != nil {
+		err = NewError(codes.InvalidHeader, err)
 		c.ReadRequestBody(nil)
 		return
 	}
@@ -98,6 +100,7 @@ func (s *Server) readRequest(c codec.ServerCodec) (response bool, req serverRequ
 	method = meth.method
 	args = meth.newArgsValue()
 	if err = c.ReadRequestBody(args.Interface()); err != nil {
+		err = NewError(codes.InvalidRequest, err)
 		return
 	}
 	reply = meth.newReplyValue()

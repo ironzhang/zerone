@@ -12,16 +12,14 @@ const (
 
 	InvalidHeader  Code = -101
 	InvalidRequest Code = -102
-
-	OutOfRange Code = -201
 )
 
 var codes = map[Code]string{}
 
 func Register(code Code, desc string) {
-	_, ok := codes[code]
+	registered, ok := codes[code]
 	if ok {
-		panic(fmt.Sprintf("%d:%s code is registered", code, desc))
+		panic(fmt.Sprintf("code=%d(%s,%s) is registered", code, desc, registered))
 	}
 	codes[code] = desc
 }
@@ -39,5 +37,4 @@ func init() {
 	Register(Internal, "internal")
 	Register(InvalidHeader, "invalid header")
 	Register(InvalidRequest, "invalid request")
-	Register(OutOfRange, "out of range")
 }
