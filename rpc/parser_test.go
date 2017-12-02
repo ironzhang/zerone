@@ -175,7 +175,7 @@ func TestCheckInsCorrect(t *testing.T) {
 	}
 }
 
-func TestCheckInsIll(t *testing.T) {
+func TestCheckInsError(t *testing.T) {
 	var a ill
 	typ := reflect.TypeOf(a)
 	for i := 0; i < typ.NumMethod(); i++ {
@@ -199,15 +199,109 @@ func TestCheckOutsCorrect(t *testing.T) {
 	}
 }
 
-func TestCheckOutsIll(t *testing.T) {
+func TestCheckOutsError(t *testing.T) {
 	var a ill
 	typ := reflect.TypeOf(a)
 	for i := 0; i < typ.NumMethod(); i++ {
 		m := typ.Method(i)
 		if err := checkOuts(m); err == nil {
-			t.Fatalf("%v: checkOuts return nil error", m.Name)
+			t.Fatalf("%v: checkOuts return error is nil", m.Name)
 		} else {
 			t.Logf("checkOuts: %v", err)
+		}
+	}
+}
+
+func TestParseMethod(t *testing.T) {
+	var a correct
+	typ := reflect.TypeOf(a)
+	for i := 0; i < typ.NumMethod(); i++ {
+		m := typ.Method(i)
+		meth, err := parseMethod(m)
+		if err != nil {
+			t.Fatalf("parseMethod: %v", err)
+		}
+		if got, want := meth.method, m; got != want {
+			t.Fatalf("method: %v != %v", got, want)
+		}
+		if got, want := meth.args, m.Type.In(2); got != want {
+			t.Fatalf("args: %v != %v", got, want)
+		}
+		if got, want := meth.reply, m.Type.In(3); got != want {
+			t.Fatalf("reply: %v != %v", got, want)
+		}
+		t.Logf("method=%v, args=%v, reply=%v", meth.method.Name, meth.args, meth.reply)
+	}
+}
+
+func TestParseMethodError(t *testing.T) {
+	var a ill
+	typ := reflect.TypeOf(a)
+	for i := 0; i < typ.NumMethod(); i++ {
+		m := typ.Method(i)
+		if _, err := parseMethod(m); err == nil {
+			t.Fatalf("%v: parseMethod return error is nil", m.Name)
+		} else {
+			t.Logf("parse method: %v", err)
+		}
+	}
+}
+
+func TestSuitableMethods(t *testing.T) {
+	tests := []struct {
+		rcvr interface{}
+		mnum int
+	}{
+		{rcvr: correct{}, mnum: 9},
+		{rcvr: ill{}, mnum: 0},
+	}
+
+	for _, tt := range tests {
+		methods := suitableMethods(reflect.TypeOf(tt.rcvr), false)
+		if got, want := len(methods), tt.mnum; got != want {
+			t.Fatalf("suitableMethods: %v != %v", got, want)
+		}
+	}
+}
+
+func TestParseServiceCorrect(t *testing.T) {
+	tests := []struct {
+		rcvr interface{}
+		mnum int
+	}{
+		{rcvr: correct{}, mnum: 9},
+	}
+	for _, tt := range tests {
+		typ := reflect.TypeOf(tt.rcvr)
+		val := reflect.ValueOf(tt.rcvr)
+		svc, err := parseService(typ.Name(), val)
+		if err != nil {
+			t.Fatalf("parseService: %v", err)
+		}
+		if got, want := svc.name, typ.Name(); got != want {
+			t.Fatalf("name: %v != %v", got, want)
+		}
+		if got, want := svc.rcvr, val; got != want {
+			t.Fatalf("rcvr: %v != %v", got, want)
+		}
+		if got, want := len(svc.methods), tt.mnum; got != want {
+			t.Fatalf("method number: %v != %v", got, want)
+		}
+		t.Logf("name: %s, rcvr: %v, methods: %v", svc.name, svc.rcvr, svc.methods)
+	}
+}
+
+func TestParseServiceError(t *testing.T) {
+	tests := []interface{}{
+		ill{},
+	}
+	for _, rcvr := range tests {
+		typ := reflect.TypeOf(rcvr)
+		val := reflect.ValueOf(rcvr)
+		if _, err := parseService(typ.Name(), val); err == nil {
+			t.Fatalf("parseService: return error is nil")
+		} else {
+			t.Logf("parseService: %v", err)
 		}
 	}
 }
