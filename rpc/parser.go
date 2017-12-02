@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"reflect"
 	"unicode"
 	"unicode/utf8"
@@ -108,7 +109,7 @@ func parseMethod(m reflect.Method) (*method, error) {
 	return &method{method: m, args: args, reply: reply}, nil
 }
 
-func parseMethods(typ reflect.Type) (map[string]*method, error) {
+func suitableMethods(typ reflect.Type, reportErr bool) map[string]*method {
 	methods := make(map[string]*method)
 	for i := 0; i < typ.NumMethod(); i++ {
 		m := typ.Method(i)
@@ -117,11 +118,14 @@ func parseMethods(typ reflect.Type) (map[string]*method, error) {
 		}
 		meth, err := parseMethod(m)
 		if err != nil {
-			return nil, err
+			if reportErr {
+				log.Printf("parse method: %v", err)
+			}
+			continue
 		}
 		methods[m.Name] = meth
 	}
-	return methods, nil
+	return methods
 }
 
 type service struct {
@@ -132,13 +136,10 @@ type service struct {
 
 func parseService(name string, rcvr reflect.Value) (*service, error) {
 	typ := rcvr.Type()
-	methods, err := parseMethods(typ)
-	if err != nil {
-		return nil, err
-	}
+	methods := suitableMethods(typ, true)
 	if len(methods) <= 0 {
 		var str string
-		methods, _ = parseMethods(reflect.PtrTo(typ))
+		methods = suitableMethods(reflect.PtrTo(typ), false)
 		if len(methods) <= 0 {
 			str = fmt.Sprintf("type %s has no exported methods of suitable type", typ.Name())
 		} else {
