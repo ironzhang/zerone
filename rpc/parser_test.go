@@ -66,21 +66,9 @@ type Context interface {
 	Value(key interface{}) interface{}
 }
 
-type Args struct {
-	A, B int
-}
+type A struct{}
 
-type Reply struct {
-	C int
-}
-
-type args struct {
-	A, B int
-}
-
-type reply struct {
-	C int
-}
+type a struct{}
 
 type correct struct{}
 
@@ -92,7 +80,7 @@ func (correct) Test01(context.Context, int, *string) error {
 	return nil
 }
 
-func (correct) Test02(context.Context, int, *Reply) error {
+func (correct) Test02(context.Context, int, *A) error {
 	return nil
 }
 
@@ -104,11 +92,11 @@ func (correct) Test10(context.Context, *int, *int) error {
 	return nil
 }
 
-func (correct) Test11(context.Context, Args, *int) error {
+func (correct) Test11(context.Context, A, *int) error {
 	return nil
 }
 
-func (correct) Test12(context.Context, *Args, *int) error {
+func (correct) Test12(context.Context, *A, *int) error {
 	return nil
 }
 
@@ -137,17 +125,17 @@ func (ill) Test11(interface{}, int, *int) int {
 	return 0
 }
 
-func (ill) Test20(context.Context, args, *int) bool {
+func (ill) Test20(context.Context, a, *int) bool {
 	return false
 }
 
-func (ill) Test21(context.Context, *args, *int) {
+func (ill) Test21(context.Context, *a, *int) {
 }
 
 func (ill) Test31(context.Context, int, int) {
 }
 
-func (ill) Test32(context.Context, int, *args) {
+func (ill) Test32(context.Context, int, *a) {
 }
 
 func TestCheckInsCorrect(t *testing.T) {
