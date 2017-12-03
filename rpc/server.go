@@ -54,7 +54,7 @@ func (s *Server) register(rcvr interface{}, name string) error {
 	return nil
 }
 
-func parseServiceMethod(serviceMethod string) (string, string, error) {
+func splitServiceMethod(serviceMethod string) (string, string, error) {
 	dot := strings.LastIndex(serviceMethod, ".")
 	if dot < 0 {
 		return "", "", fmt.Errorf("service/method request ill-formed: %s", serviceMethod)
@@ -86,7 +86,7 @@ func (s *Server) readRequest(c codec.ServerCodec) (response bool, req serverRequ
 	req.serviceMethod = h.ServiceMethod
 	req.sequence = h.Sequence
 
-	req.serviceName, req.methodName, err = parseServiceMethod(req.serviceMethod)
+	req.serviceName, req.methodName, err = splitServiceMethod(req.serviceMethod)
 	if err != nil {
 		err = NewError(codes.InvalidHeader, err)
 		c.ReadRequestBody(nil)
