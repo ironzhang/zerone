@@ -2,10 +2,14 @@ package rpc
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"reflect"
 	"testing"
+
+	"github.com/ironzhang/zerone/rpc/codec"
 )
 
 type Args struct {
@@ -226,5 +230,72 @@ func TestLookupServiceMethod(t *testing.T) {
 		if got, want := meth.reply, tt.meth.reply; got != want {
 			t.Fatalf("service=%q, method=%q: reply: %v != %v", tt.service, tt.method, got, want)
 		}
+	}
+}
+
+type serverCodecRequest struct {
+	header codec.RequestHeader
+	body   interface{}
+}
+
+type testServerCodec struct {
+	index    int
+	requests []serverCodecRequest
+}
+
+func (c *testServerCodec) ReadRequestHeader(h *codec.RequestHeader) error {
+	if c.index >= len(c.requests) {
+		return io.EOF
+	}
+	*h = c.requests[c.index].header
+	return nil
+}
+
+func (c *testServerCodec) ReadRequestBody(a interface{}) error {
+	if c.index >= len(c.requests) {
+		return io.EOF
+	}
+	data, err := json.Marshal(c.requests[c.index].body)
+	if err != nil {
+		return err
+	}
+	if err = json.Unmarshal(data, a); err != nil {
+		return err
+	}
+	c.index++
+	return nil
+}
+
+func (c *testServerCodec) WriteResponse(h *codec.ResponseHeader, a interface{}) error {
+	return nil
+}
+
+func TestServerReadRequest(t *testing.T) {
+	var a Arith
+	var b BuiltinTypes
+	var s Server
+	if err := s.Register(&a); err != nil {
+		t.Fatalf("Register: %v", err)
+	}
+	if err := s.Register(b); err != nil {
+		t.Fatalf("Register: %v", err)
+	}
+
+	tsc := testServerCodec{
+		requests: []serverCodecRequest{
+			{
+				header: codec.RequestHeader{ServiceMethod: "Arith.Add"},
+				body:   Args{A: 1, B: 2},
+			},
+		},
+	}
+	for {
+		_, req, _, _, _, _, err := s.readRequest(&tsc)
+		//_, req, method, rcvr, args, reply, err := s.readRequest(&c)
+		if err != nil {
+			fmt.Printf("readRequest: %v\n", err)
+			break
+		}
+		fmt.Printf("readRequest: %v\n", req)
 	}
 }
