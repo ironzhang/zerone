@@ -155,6 +155,6 @@ func (s *Server) serveCodec(c codec.ServerCodec) {
 		if erri != nil {
 			err = erri.(error)
 		}
-		s.writeResponse(c, req, reply, err)
+		s.writeResponse(c, req, reply.Interface(), err)
 	}
 }
