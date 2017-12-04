@@ -151,6 +151,26 @@ func (s *Server) writeResponse(c codec.ServerCodec, req *codec.RequestHeader, re
 	return c.WriteResponse(&resp, reply)
 }
 
+func (s *Server) serveCall(method reflect.Method, rcvr, args, reply reflect.Value) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			if e, ok := r.(error); ok {
+				err = e
+			} else {
+				err = fmt.Errorf("%v", r)
+			}
+		}
+	}()
+
+	ctx := context.Background()
+	rets := method.Func.Call([]reflect.Value{rcvr, reflect.ValueOf(ctx), args, reply})
+	erri := rets[0].Interface()
+	if erri != nil {
+		err = erri.(error)
+	}
+	return err
+}
+
 func (s *Server) serveCodec(c codec.ServerCodec) {
 	for {
 		req, method, rcvr, args, reply, err := s.readRequest(c)
@@ -160,12 +180,7 @@ func (s *Server) serveCodec(c codec.ServerCodec) {
 			}
 		}
 
-		ctx := context.Background()
-		rets := method.Func.Call([]reflect.Value{rcvr, reflect.ValueOf(ctx), args, reply})
-		erri := rets[0].Interface()
-		if erri != nil {
-			err = erri.(error)
-		}
+		err = s.serveCall(method, rcvr, args, reply)
 		s.writeResponse(c, req, reply.Interface(), err)
 	}
 }

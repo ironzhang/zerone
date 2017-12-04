@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/ironzhang/zerone/rpc/codec"
+	"github.com/ironzhang/zerone/rpc/codes"
 )
 
 type Args struct {
@@ -419,6 +420,173 @@ func TestServerReadRequestError(t *testing.T) {
 		}
 		if got, want := req, tt.expectReq; !reflect.DeepEqual(got, want) {
 			t.Fatalf("header: %+v != %+v", got, want)
+		}
+	}
+}
+
+func TestServerWriteResponse(t *testing.T) {
+	s := NewServer("testsvr")
+	tests := []struct {
+		req   codec.RequestHeader
+		reply interface{}
+		err   error
+		resp  codec.ResponseHeader
+	}{
+		{
+			req: codec.RequestHeader{
+				ServiceMethod: "Arith.Add",
+				Sequence:      1,
+			},
+			resp: codec.ResponseHeader{
+				ServiceMethod: "Arith.Add",
+				Sequence:      1,
+			},
+		},
+		{
+			req: codec.RequestHeader{
+				ServiceMethod: "Arith.Add",
+				Sequence:      1,
+			},
+			reply: &Reply{C: 3},
+			resp: codec.ResponseHeader{
+				ServiceMethod: "Arith.Add",
+				Sequence:      1,
+			},
+		},
+		{
+			req: codec.RequestHeader{
+				ServiceMethod: "Arith.Add",
+				Sequence:      1,
+			},
+			reply: nil,
+			err:   io.EOF,
+			resp: codec.ResponseHeader{
+				ServiceMethod: "Arith.Add",
+				Sequence:      1,
+				Error: codec.Error{
+					Code:   int(codes.Unknown),
+					Desc:   codes.Unknown.String(),
+					Cause:  io.EOF.Error(),
+					Module: "testsvr",
+				},
+			},
+		},
+		{
+			req: codec.RequestHeader{
+				ServiceMethod: "Arith.Add",
+				Sequence:      1,
+			},
+			reply: nil,
+			err:   NewError(codes.Internal, io.EOF),
+			resp: codec.ResponseHeader{
+				ServiceMethod: "Arith.Add",
+				Sequence:      1,
+				Error: codec.Error{
+					Code:   int(codes.Internal),
+					Desc:   codes.Internal.String(),
+					Cause:  io.EOF.Error(),
+					Module: "testsvr",
+				},
+			},
+		},
+		{
+			req: codec.RequestHeader{
+				ServiceMethod: "Arith.Add",
+				Sequence:      1,
+			},
+			reply: nil,
+			err:   NewModuleError("module1", codes.Internal, io.EOF),
+			resp: codec.ResponseHeader{
+				ServiceMethod: "Arith.Add",
+				Sequence:      1,
+				Error: codec.Error{
+					Code:   int(codes.Internal),
+					Desc:   codes.Internal.String(),
+					Cause:  io.EOF.Error(),
+					Module: "module1",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		codec := &testServerCodec{}
+		if err := s.writeResponse(codec, &tt.req, tt.reply, tt.err); err != nil {
+			t.Fatalf("writeResponse: %v", err)
+		}
+		if got, want := codec.respHeader, tt.resp; got != want {
+			t.Fatalf("header: %v != %v", got, want)
+		}
+		if got, want := codec.respBody, tt.reply; got != want {
+			t.Fatalf("body: %v != %v", got, want)
+		}
+	}
+}
+
+func TestServerServeCallCorrect(t *testing.T) {
+	var a Arith
+	var s Server
+	tests := []struct {
+		method reflect.Method
+		rcvr   interface{}
+		args   interface{}
+		reply  interface{}
+		expect interface{}
+	}{
+		{
+			method: getMethod(&a, "Add").method,
+			rcvr:   &a,
+			args:   Args{A: 1, B: 2},
+			reply:  &Reply{},
+			expect: &Reply{C: 3},
+		},
+		{
+			method: getMethod(&a, "Mul").method,
+			rcvr:   &a,
+			args:   &Args{A: 1, B: 2},
+			reply:  &Reply{},
+			expect: &Reply{C: 2},
+		},
+	}
+	for _, tt := range tests {
+		err := s.serveCall(tt.method, reflect.ValueOf(tt.rcvr), reflect.ValueOf(tt.args), reflect.ValueOf(tt.reply))
+		if err != nil {
+			t.Fatalf("serveCall: %v", err)
+		}
+		if got, want := tt.reply, tt.expect; !reflect.DeepEqual(got, want) {
+			t.Fatalf("reply: %+v != %+v", got, want)
+		} else {
+			t.Logf("reply: %+v", tt.reply)
+		}
+	}
+}
+
+func TestServerServeCallError(t *testing.T) {
+	var a Arith
+	var s Server
+	tests := []struct {
+		method reflect.Method
+		rcvr   interface{}
+		args   interface{}
+		reply  interface{}
+		expect interface{}
+	}{
+		{
+			method: getMethod(&a, "Error").method,
+			rcvr:   &a,
+			args:   &Args{A: 1, B: 2},
+			reply:  &Reply{},
+			expect: &Reply{},
+		},
+	}
+	for _, tt := range tests {
+		err := s.serveCall(tt.method, reflect.ValueOf(tt.rcvr), reflect.ValueOf(tt.args), reflect.ValueOf(tt.reply))
+		if err != nil {
+			t.Fatalf("serveCall: %v", err)
+		}
+		if got, want := tt.reply, tt.expect; !reflect.DeepEqual(got, want) {
+			t.Fatalf("reply: %+v != %+v", got, want)
+		} else {
+			t.Logf("reply: %+v", tt.reply)
 		}
 	}
 }
