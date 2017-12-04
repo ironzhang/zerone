@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
+	"math/rand"
 	"reflect"
 	"testing"
 
@@ -233,40 +233,32 @@ func TestLookupServiceMethod(t *testing.T) {
 	}
 }
 
-type serverCodecRequest struct {
-	header codec.RequestHeader
-	body   interface{}
-}
-
 type testServerCodec struct {
-	index    int
-	requests []serverCodecRequest
+	reqHeader  codec.RequestHeader
+	reqBody    interface{}
+	respHeader codec.ResponseHeader
+	respBody   interface{}
 }
 
 func (c *testServerCodec) ReadRequestHeader(h *codec.RequestHeader) error {
-	if c.index >= len(c.requests) {
-		return io.EOF
-	}
-	*h = c.requests[c.index].header
+	*h = c.reqHeader
 	return nil
 }
 
 func (c *testServerCodec) ReadRequestBody(a interface{}) error {
-	if c.index >= len(c.requests) {
-		return io.EOF
-	}
-	data, err := json.Marshal(c.requests[c.index].body)
+	data, err := json.Marshal(c.reqBody)
 	if err != nil {
 		return err
 	}
 	if err = json.Unmarshal(data, a); err != nil {
 		return err
 	}
-	c.index++
 	return nil
 }
 
 func (c *testServerCodec) WriteResponse(h *codec.ResponseHeader, a interface{}) error {
+	c.respHeader = *h
+	c.respBody = a
 	return nil
 }
 
@@ -281,21 +273,47 @@ func TestServerReadRequest(t *testing.T) {
 		t.Fatalf("Register: %v", err)
 	}
 
-	tsc := testServerCodec{
-		requests: []serverCodecRequest{
-			{
-				header: codec.RequestHeader{ServiceMethod: "Arith.Add"},
-				body:   Args{A: 1, B: 2},
-			},
-		},
+	tests := []struct {
+		service string
+		method  string
+		rcvr    interface{}
+		args    interface{}
+		reply   interface{}
+	}{
+		{service: "Arith", method: "Add", rcvr: &a, args: Args{1, 2}, reply: &Reply{}},
+		{service: "Arith", method: "Mul", rcvr: &a, args: &Args{1, 2}, reply: &Reply{}},
+		{service: "BuiltinTypes", method: "Map", rcvr: b, args: &Args{1, 2}, reply: &map[int]int{}},
+		{service: "BuiltinTypes", method: "Slice", rcvr: b, args: &Args{1, 2}, reply: &[]int{}},
+		{service: "BuiltinTypes", method: "Array", rcvr: b, args: &Args{1, 2}, reply: &[2]int{}},
 	}
-	for {
-		_, req, _, _, _, _, err := s.readRequest(&tsc)
-		//_, req, method, rcvr, args, reply, err := s.readRequest(&c)
-		if err != nil {
-			fmt.Printf("readRequest: %v\n", err)
-			break
+	for _, tt := range tests {
+		header := codec.RequestHeader{
+			ServiceMethod: fmt.Sprintf("%s.%s", tt.service, tt.method),
+			Sequence:      rand.Uint64(),
+			TraceID:       "TraceID",
+			ClientName:    "ClientName",
+			Verbose:       true,
 		}
-		fmt.Printf("readRequest: %v\n", req)
+		codec := &testServerCodec{reqHeader: header, reqBody: tt.args}
+
+		req, method, rcvr, args, reply, err := s.readRequest(codec)
+		if err != nil {
+			t.Fatalf("readRequest: %v", err)
+		}
+		if got, want := *req, header; got != want {
+			t.Fatalf("%s.%s: header: %v != %v", tt.service, tt.method, got, want)
+		}
+		if got, want := method.Name, tt.method; got != want {
+			t.Fatalf("%s.%s: method: %v != %v", tt.service, tt.method, got, want)
+		}
+		if got, want := rcvr.Interface(), tt.rcvr; got != want {
+			t.Fatalf("%s.%s: rcvr: %v != %v", tt.service, tt.method, got, want)
+		}
+		if got, want := args.Interface(), tt.args; !reflect.DeepEqual(got, want) {
+			t.Fatalf("%s.%s: args: %v != %v", tt.service, tt.method, got, want)
+		}
+		if got, want := reply.Interface(), tt.reply; !reflect.DeepEqual(got, want) {
+			t.Fatalf("%s.%s: reply: %#v != %#v", tt.service, tt.method, got, want)
+		}
 	}
 }

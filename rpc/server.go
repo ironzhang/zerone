@@ -11,23 +11,13 @@ import (
 	"github.com/ironzhang/zerone/rpc/codes"
 )
 
-type serverRequest struct {
-	serviceMethod string
-	serviceName   string
-	methodName    string
-	sequence      uint64
-}
-
 type Server struct {
+	name       string
 	serviceMap sync.Map
 }
 
-func (s *Server) Register(rcvr interface{}) error {
-	return s.register(rcvr, "")
-}
-
-func (s *Server) RegisterName(name string, rcvr interface{}) error {
-	return s.register(rcvr, name)
+func NewServer(name string) *Server {
+	return &Server{name: name}
 }
 
 func (s *Server) register(rcvr interface{}, name string) error {
@@ -54,6 +44,14 @@ func (s *Server) register(rcvr interface{}, name string) error {
 	return nil
 }
 
+func (s *Server) Register(rcvr interface{}) error {
+	return s.register(rcvr, "")
+}
+
+func (s *Server) RegisterName(name string, rcvr interface{}) error {
+	return s.register(rcvr, name)
+}
+
 func splitServiceMethod(serviceMethod string) (string, string, error) {
 	dot := strings.LastIndex(serviceMethod, ".")
 	if dot < 0 {
@@ -75,45 +73,58 @@ func (s *Server) lookupServiceMethod(serviceName, methodName string) (reflect.Va
 	return svc.rcvr, meth, nil
 }
 
-func (s *Server) readRequest(c codec.ServerCodec) (response bool, req serverRequest, method reflect.Method, rcvr, args, reply reflect.Value, err error) {
+func (s *Server) readRequest(c codec.ServerCodec) (req *codec.RequestHeader, method reflect.Method, rcvr, args, reply reflect.Value, err error) {
 	var h codec.RequestHeader
 	if err = c.ReadRequestHeader(&h); err != nil {
 		err = NewError(codes.InvalidHeader, err)
 		return
 	}
+	req = &h
 
-	response = true
-	req.serviceMethod = h.ServiceMethod
-	req.sequence = h.Sequence
-
-	req.serviceName, req.methodName, err = splitServiceMethod(req.serviceMethod)
+	serviceName, methodName, err := splitServiceMethod(req.ServiceMethod)
 	if err != nil {
 		err = NewError(codes.InvalidHeader, err)
 		c.ReadRequestBody(nil)
 		return
 	}
-	rcvr, meth, err := s.lookupServiceMethod(req.serviceName, req.methodName)
+	rcvr, meth, err := s.lookupServiceMethod(serviceName, methodName)
 	if err != nil {
 		err = NewError(codes.InvalidHeader, err)
 		c.ReadRequestBody(nil)
 		return
 	}
-
 	method = meth.method
-	args = meth.newArgsValue()
+
+	argIsValue := false
+	if meth.args.Kind() == reflect.Ptr {
+		args = reflect.New(meth.args.Elem())
+	} else {
+		args = reflect.New(meth.args)
+		argIsValue = true
+	}
 	if err = c.ReadRequestBody(args.Interface()); err != nil {
 		err = NewError(codes.InvalidRequest, err)
 		return
 	}
-	reply = meth.newReplyValue()
+	if argIsValue {
+		args = args.Elem()
+	}
+
+	reply = reflect.New(meth.reply.Elem())
+	switch meth.reply.Elem().Kind() {
+	case reflect.Map:
+		reply.Elem().Set(reflect.MakeMap(meth.reply.Elem()))
+	case reflect.Slice:
+		reply.Elem().Set(reflect.MakeSlice(meth.reply.Elem(), 0, 0))
+	}
 
 	return
 }
 
-func (s *Server) writeResponse(c codec.ServerCodec, req serverRequest, reply interface{}, err error) error {
+func (s *Server) writeResponse(c codec.ServerCodec, req *codec.RequestHeader, reply interface{}, err error) error {
 	var resp codec.ResponseHeader
-	resp.ServiceMethod = req.serviceMethod
-	resp.Sequence = req.sequence
+	resp.ServiceMethod = req.ServiceMethod
+	resp.Sequence = req.Sequence
 	if err != nil {
 		code := codes.Unknown
 		if e, ok := err.(ErrorCode); ok {
@@ -125,7 +136,7 @@ func (s *Server) writeResponse(c codec.ServerCodec, req serverRequest, reply int
 				cause = ce.Error()
 			}
 		}
-		module := req.serviceName
+		module := s.name
 		if e, ok := err.(ErrorModule); ok {
 			if m := e.Module(); m != "" {
 				module = m
@@ -142,10 +153,10 @@ func (s *Server) writeResponse(c codec.ServerCodec, req serverRequest, reply int
 
 func (s *Server) serveCodec(c codec.ServerCodec) {
 	for {
-		response, req, method, rcvr, args, reply, err := s.readRequest(c)
+		req, method, rcvr, args, reply, err := s.readRequest(c)
 		if err != nil {
-			if response {
-				s.writeResponse(c, req, reply, err)
+			if req != nil {
+				s.writeResponse(c, req, nil, err)
 			}
 		}
 
