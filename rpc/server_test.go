@@ -575,18 +575,14 @@ func TestServerServeCallError(t *testing.T) {
 			rcvr:   &a,
 			args:   &Args{A: 1, B: 2},
 			reply:  &Reply{},
-			expect: &Reply{},
 		},
 	}
 	for _, tt := range tests {
 		err := s.serveCall(tt.method, reflect.ValueOf(tt.rcvr), reflect.ValueOf(tt.args), reflect.ValueOf(tt.reply))
-		if err != nil {
-			t.Fatalf("serveCall: %v", err)
-		}
-		if got, want := tt.reply, tt.expect; !reflect.DeepEqual(got, want) {
-			t.Fatalf("reply: %+v != %+v", got, want)
+		if err == nil {
+			t.Fatalf("serveCall: return error is nil")
 		} else {
-			t.Logf("reply: %+v", tt.reply)
+			t.Logf("serviceCall: %v", err)
 		}
 	}
 }
