@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math/rand"
 	"reflect"
 	"testing"
@@ -56,17 +57,6 @@ func (t *Arith) Error(ctx context.Context, args *Args, reply *Reply) error {
 	panic("ERROR")
 }
 
-type hidden int
-
-func (t *hidden) Exported(ctx context.Context, args Args, reply *Reply) error {
-	reply.C = args.A + args.B
-	return nil
-}
-
-type Embed struct {
-	hidden
-}
-
 type BuiltinTypes struct{}
 
 func (BuiltinTypes) Map(ctx context.Context, args *Args, reply *map[int]int) error {
@@ -83,6 +73,17 @@ func (BuiltinTypes) Array(ctx context.Context, args *Args, reply *[2]int) error 
 	(*reply)[0] = args.A
 	(*reply)[1] = args.B
 	return nil
+}
+
+type hidden int
+
+func (t *hidden) Exported(ctx context.Context, args Args, reply *Reply) error {
+	reply.C = args.A + args.B
+	return nil
+}
+
+type Embed struct {
+	hidden
 }
 
 func TestServerRegisterCorrect(t *testing.T) {
@@ -234,18 +235,27 @@ func TestLookupServiceMethod(t *testing.T) {
 }
 
 type testServerCodec struct {
-	reqHeader  codec.RequestHeader
-	reqBody    interface{}
+	reqHeaderErr error
+	reqHeader    codec.RequestHeader
+	reqBodyErr   error
+	reqBody      interface{}
+
 	respHeader codec.ResponseHeader
 	respBody   interface{}
 }
 
 func (c *testServerCodec) ReadRequestHeader(h *codec.RequestHeader) error {
+	if c.reqHeaderErr != nil {
+		return c.reqHeaderErr
+	}
 	*h = c.reqHeader
 	return nil
 }
 
 func (c *testServerCodec) ReadRequestBody(a interface{}) error {
+	if c.reqBodyErr != nil {
+		return c.reqBodyErr
+	}
 	data, err := json.Marshal(c.reqBody)
 	if err != nil {
 		return err
@@ -262,14 +272,18 @@ func (c *testServerCodec) WriteResponse(h *codec.ResponseHeader, a interface{}) 
 	return nil
 }
 
-func TestServerReadRequest(t *testing.T) {
+func TestServerReadRequestCorrect(t *testing.T) {
 	var a Arith
 	var b BuiltinTypes
+	var e Embed
 	var s Server
 	if err := s.Register(&a); err != nil {
 		t.Fatalf("Register: %v", err)
 	}
 	if err := s.Register(b); err != nil {
+		t.Fatalf("Register: %v", err)
+	}
+	if err := s.Register(&e); err != nil {
 		t.Fatalf("Register: %v", err)
 	}
 
@@ -285,6 +299,7 @@ func TestServerReadRequest(t *testing.T) {
 		{service: "BuiltinTypes", method: "Map", rcvr: b, args: &Args{1, 2}, reply: &map[int]int{}},
 		{service: "BuiltinTypes", method: "Slice", rcvr: b, args: &Args{1, 2}, reply: &[]int{}},
 		{service: "BuiltinTypes", method: "Array", rcvr: b, args: &Args{1, 2}, reply: &[2]int{}},
+		{service: "Embed", method: "Exported", rcvr: &e, args: Args{1, 2}, reply: &Reply{}},
 	}
 	for _, tt := range tests {
 		header := codec.RequestHeader{
@@ -314,6 +329,96 @@ func TestServerReadRequest(t *testing.T) {
 		}
 		if got, want := reply.Interface(), tt.reply; !reflect.DeepEqual(got, want) {
 			t.Fatalf("%s.%s: reply: %#v != %#v", tt.service, tt.method, got, want)
+		}
+		t.Logf("req=%v, method=%s, rcvr=%v, args=%v, reply=%v", *req, method.Name, rcvr.Interface(), args.Interface(), reply.Interface())
+	}
+}
+
+func TestServerReadRequestError(t *testing.T) {
+	var a Arith
+	var s Server
+	if err := s.Register(&a); err != nil {
+		t.Fatalf("Register: %v", err)
+	}
+
+	tests := []struct {
+		headerErr error
+		header    codec.RequestHeader
+		bodyErr   error
+		body      interface{}
+		expectReq *codec.RequestHeader
+	}{
+		{
+			headerErr: io.EOF,
+			header:    codec.RequestHeader{},
+			bodyErr:   nil,
+			body:      nil,
+			expectReq: nil,
+		},
+		{
+			headerErr: nil,
+			header: codec.RequestHeader{
+				ServiceMethod: "",
+				Sequence:      1,
+			},
+			bodyErr: nil,
+			body:    nil,
+			expectReq: &codec.RequestHeader{
+				ServiceMethod: "",
+				Sequence:      1,
+			},
+		},
+		{
+			headerErr: nil,
+			header: codec.RequestHeader{
+				ServiceMethod: ".Add",
+				Sequence:      2,
+			},
+			bodyErr: nil,
+			body:    nil,
+			expectReq: &codec.RequestHeader{
+				ServiceMethod: ".Add",
+				Sequence:      2,
+			},
+		},
+		{
+			headerErr: nil,
+			header: codec.RequestHeader{
+				ServiceMethod: "Arith.",
+				Sequence:      3,
+			},
+			bodyErr: nil,
+			body:    nil,
+			expectReq: &codec.RequestHeader{
+				ServiceMethod: "Arith.",
+				Sequence:      3,
+			},
+		},
+		{
+			headerErr: nil,
+			header: codec.RequestHeader{
+				ServiceMethod: "Arith.Add",
+				Sequence:      4,
+			},
+			bodyErr: io.EOF,
+			body:    nil,
+			expectReq: &codec.RequestHeader{
+				ServiceMethod: "Arith.Add",
+				Sequence:      4,
+			},
+		},
+	}
+	for _, tt := range tests {
+		codec := &testServerCodec{reqHeaderErr: tt.headerErr, reqHeader: tt.header, reqBodyErr: tt.bodyErr, reqBody: tt.body}
+
+		req, _, _, _, _, err := s.readRequest(codec)
+		if err == nil {
+			t.Fatalf("readRequest: return error is nil")
+		} else {
+			t.Logf("readRequest: %v", err)
+		}
+		if got, want := req, tt.expectReq; !reflect.DeepEqual(got, want) {
+			t.Fatalf("header: %+v != %+v", got, want)
 		}
 	}
 }
