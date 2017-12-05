@@ -3,6 +3,7 @@ package rpc
 import (
 	"context"
 	"fmt"
+	"io"
 	"reflect"
 	"strings"
 	"sync"
@@ -73,13 +74,16 @@ func (s *Server) lookupServiceMethod(serviceName, methodName string) (reflect.Va
 	return svc.rcvr, meth, nil
 }
 
-func (s *Server) readRequest(c codec.ServerCodec) (req *codec.RequestHeader, method reflect.Method, rcvr, args, reply reflect.Value, err error) {
+func (s *Server) readRequest(c codec.ServerCodec) (req *codec.RequestHeader, method reflect.Method, rcvr, args, reply reflect.Value, keepReading bool, err error) {
 	var h codec.RequestHeader
 	if err = c.ReadRequestHeader(&h); err != nil {
-		err = NewError(codes.InvalidHeader, err)
+		if err != io.EOF && err != io.ErrUnexpectedEOF {
+			keepReading = true
+		}
 		return
 	}
 	req = &h
+	keepReading = true
 
 	serviceName, methodName, err := splitServiceMethod(req.ServiceMethod)
 	if err != nil {
@@ -151,7 +155,7 @@ func (s *Server) writeResponse(c codec.ServerCodec, req *codec.RequestHeader, re
 	return c.WriteResponse(&resp, reply)
 }
 
-func (s *Server) serveCall(method reflect.Method, rcvr, args, reply reflect.Value) (err error) {
+func (s *Server) call(method reflect.Method, rcvr, args, reply reflect.Value) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if e, ok := r.(error); ok {
@@ -171,16 +175,24 @@ func (s *Server) serveCall(method reflect.Method, rcvr, args, reply reflect.Valu
 	return err
 }
 
+func (s *Server) serveCall(c codec.ServerCodec) bool {
+	req, method, rcvr, args, reply, keepReading, err := s.readRequest(c)
+	if err != nil {
+		if req != nil {
+			s.writeResponse(c, req, nil, err)
+		}
+		return keepReading
+	}
+
+	err = s.call(method, rcvr, args, reply)
+	s.writeResponse(c, req, reply.Interface(), err)
+	return keepReading
+}
+
 func (s *Server) serveCodec(c codec.ServerCodec) {
 	for {
-		req, method, rcvr, args, reply, err := s.readRequest(c)
-		if err != nil {
-			if req != nil {
-				s.writeResponse(c, req, nil, err)
-			}
+		if !s.serveCall(c) {
+			break
 		}
-
-		err = s.serveCall(method, rcvr, args, reply)
-		s.writeResponse(c, req, reply.Interface(), err)
 	}
 }

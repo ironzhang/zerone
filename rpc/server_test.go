@@ -312,9 +312,12 @@ func TestServerReadRequestCorrect(t *testing.T) {
 		}
 		codec := &testServerCodec{reqHeader: header, reqBody: tt.args}
 
-		req, method, rcvr, args, reply, err := s.readRequest(codec)
+		req, method, rcvr, args, reply, keepReading, err := s.readRequest(codec)
 		if err != nil {
 			t.Fatalf("readRequest: %v", err)
+		}
+		if got, want := keepReading, true; got != want {
+			t.Fatalf("%s.%s: keepReading: %v != %v", tt.service, tt.method, got, want)
 		}
 		if got, want := *req, header; got != want {
 			t.Fatalf("%s.%s: header: %v != %v", tt.service, tt.method, got, want)
@@ -343,18 +346,20 @@ func TestServerReadRequestError(t *testing.T) {
 	}
 
 	tests := []struct {
-		headerErr error
-		header    codec.RequestHeader
-		bodyErr   error
-		body      interface{}
-		expectReq *codec.RequestHeader
+		headerErr   error
+		header      codec.RequestHeader
+		bodyErr     error
+		body        interface{}
+		keepReading bool
+		expectReq   *codec.RequestHeader
 	}{
 		{
-			headerErr: io.EOF,
-			header:    codec.RequestHeader{},
-			bodyErr:   nil,
-			body:      nil,
-			expectReq: nil,
+			headerErr:   io.EOF,
+			header:      codec.RequestHeader{},
+			bodyErr:     nil,
+			body:        nil,
+			keepReading: false,
+			expectReq:   nil,
 		},
 		{
 			headerErr: nil,
@@ -362,8 +367,9 @@ func TestServerReadRequestError(t *testing.T) {
 				ServiceMethod: "",
 				Sequence:      1,
 			},
-			bodyErr: nil,
-			body:    nil,
+			bodyErr:     nil,
+			body:        nil,
+			keepReading: true,
 			expectReq: &codec.RequestHeader{
 				ServiceMethod: "",
 				Sequence:      1,
@@ -375,8 +381,9 @@ func TestServerReadRequestError(t *testing.T) {
 				ServiceMethod: ".Add",
 				Sequence:      2,
 			},
-			bodyErr: nil,
-			body:    nil,
+			bodyErr:     nil,
+			body:        nil,
+			keepReading: true,
 			expectReq: &codec.RequestHeader{
 				ServiceMethod: ".Add",
 				Sequence:      2,
@@ -388,8 +395,9 @@ func TestServerReadRequestError(t *testing.T) {
 				ServiceMethod: "Arith.",
 				Sequence:      3,
 			},
-			bodyErr: nil,
-			body:    nil,
+			bodyErr:     nil,
+			body:        nil,
+			keepReading: true,
 			expectReq: &codec.RequestHeader{
 				ServiceMethod: "Arith.",
 				Sequence:      3,
@@ -401,8 +409,9 @@ func TestServerReadRequestError(t *testing.T) {
 				ServiceMethod: "Arith.Add",
 				Sequence:      4,
 			},
-			bodyErr: io.EOF,
-			body:    nil,
+			bodyErr:     io.EOF,
+			body:        nil,
+			keepReading: true,
 			expectReq: &codec.RequestHeader{
 				ServiceMethod: "Arith.Add",
 				Sequence:      4,
@@ -412,15 +421,17 @@ func TestServerReadRequestError(t *testing.T) {
 	for _, tt := range tests {
 		codec := &testServerCodec{reqHeaderErr: tt.headerErr, reqHeader: tt.header, reqBodyErr: tt.bodyErr, reqBody: tt.body}
 
-		req, _, _, _, _, err := s.readRequest(codec)
+		req, _, _, _, _, keepReading, err := s.readRequest(codec)
 		if err == nil {
 			t.Fatalf("readRequest: return error is nil")
-		} else {
-			t.Logf("readRequest: %v", err)
+		}
+		if got, want := keepReading, tt.keepReading; got != want {
+			t.Fatalf("keepReading: %v != %v", got, want)
 		}
 		if got, want := req, tt.expectReq; !reflect.DeepEqual(got, want) {
 			t.Fatalf("header: %+v != %+v", got, want)
 		}
+		t.Logf("readRequest: %v, %v, %v", req, keepReading, err)
 	}
 }
 
@@ -522,7 +533,7 @@ func TestServerWriteResponse(t *testing.T) {
 	}
 }
 
-func TestServerServeCallCorrect(t *testing.T) {
+func TestServerCallCorrect(t *testing.T) {
 	var a Arith
 	var s Server
 	tests := []struct {
@@ -548,7 +559,7 @@ func TestServerServeCallCorrect(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		err := s.serveCall(tt.method, reflect.ValueOf(tt.rcvr), reflect.ValueOf(tt.args), reflect.ValueOf(tt.reply))
+		err := s.call(tt.method, reflect.ValueOf(tt.rcvr), reflect.ValueOf(tt.args), reflect.ValueOf(tt.reply))
 		if err != nil {
 			t.Fatalf("serveCall: %v", err)
 		}
@@ -560,7 +571,7 @@ func TestServerServeCallCorrect(t *testing.T) {
 	}
 }
 
-func TestServerServeCallError(t *testing.T) {
+func TestServerCallError(t *testing.T) {
 	var a Arith
 	var s Server
 	tests := []struct {
@@ -578,11 +589,91 @@ func TestServerServeCallError(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		err := s.serveCall(tt.method, reflect.ValueOf(tt.rcvr), reflect.ValueOf(tt.args), reflect.ValueOf(tt.reply))
+		err := s.call(tt.method, reflect.ValueOf(tt.rcvr), reflect.ValueOf(tt.args), reflect.ValueOf(tt.reply))
 		if err == nil {
 			t.Fatalf("serveCall: return error is nil")
 		} else {
 			t.Logf("serviceCall: %v", err)
+		}
+	}
+}
+
+func TestServerServeCall(t *testing.T) {
+	var a Arith
+	var b BuiltinTypes
+	var e Embed
+	s := NewServer("TestServerServeCall")
+	if err := s.Register(&a); err != nil {
+		t.Fatalf("Register: %v", err)
+	}
+	if err := s.Register(b); err != nil {
+		t.Fatalf("Register: %v", err)
+	}
+	if err := s.Register(&e); err != nil {
+		t.Fatalf("Register: %v", err)
+	}
+
+	tests := []struct {
+		reqHeaderErr error
+		reqHeader    codec.RequestHeader
+		reqBodyErr   error
+		reqBody      interface{}
+		respHeader   codec.ResponseHeader
+		respBody     interface{}
+	}{
+		{
+			reqHeader:  codec.RequestHeader{ServiceMethod: "Arith.Add", Sequence: 1},
+			reqBody:    Args{1, 2},
+			respHeader: codec.ResponseHeader{ServiceMethod: "Arith.Add", Sequence: 1},
+			respBody:   &Reply{3},
+		},
+		{
+			reqHeaderErr: io.EOF,
+			reqHeader:    codec.RequestHeader{},
+			reqBody:      Args{},
+			respHeader:   codec.ResponseHeader{},
+			respBody:     nil,
+		},
+		{
+			reqHeader: codec.RequestHeader{ServiceMethod: "Arith", Sequence: 1},
+			reqBody:   Args{1, 2},
+			respHeader: codec.ResponseHeader{
+				ServiceMethod: "Arith",
+				Sequence:      1,
+				Error: codec.Error{
+					Code:   int(codes.InvalidHeader),
+					Desc:   codes.InvalidHeader.String(),
+					Cause:  fmt.Sprintf("service/method request ill-formed: %s", "Arith"),
+					Module: "TestServerServeCall",
+				},
+			},
+			respBody: nil,
+		},
+		{
+			reqHeader:  codec.RequestHeader{ServiceMethod: "Arith.Add", Sequence: 1},
+			reqBodyErr: io.EOF,
+			reqBody:    Args{},
+			respHeader: codec.ResponseHeader{
+				ServiceMethod: "Arith.Add",
+				Sequence:      1,
+				Error: codec.Error{
+					Code:   int(codes.InvalidRequest),
+					Desc:   codes.InvalidRequest.String(),
+					Cause:  io.EOF.Error(),
+					Module: "TestServerServeCall",
+				},
+			},
+			respBody: nil,
+		},
+	}
+	for _, tt := range tests {
+		codec := &testServerCodec{reqHeaderErr: tt.reqHeaderErr, reqHeader: tt.reqHeader, reqBodyErr: tt.reqBodyErr, reqBody: tt.reqBody}
+		s.serveCall(codec)
+		if got, want := codec.respHeader, tt.respHeader; got != want {
+			t.Fatalf("respHeader: %+v != %+v", got, want)
+		}
+		if got, want := codec.respBody, tt.respBody; !reflect.DeepEqual(got, want) {
+			t.Fatalf("respBody: %+v != %+v", got, want)
 		}
 	}
 }
