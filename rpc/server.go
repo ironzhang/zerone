@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
+	"net"
 	"reflect"
 	"strings"
 	"sync"
@@ -212,4 +214,15 @@ func (s *Server) ServeCodec(c codec.ServerCodec) {
 func (s *Server) ServeConn(rwc io.ReadWriteCloser) {
 	defer rwc.Close()
 	s.ServeCodec(json_codec.NewServerCodec(rwc))
+}
+
+func (s *Server) Accept(ln net.Listener) {
+	for {
+		conn, err := ln.Accept()
+		if err != nil {
+			log.Printf("rpc.Accept: %v", err)
+			return
+		}
+		go s.ServeConn(conn)
+	}
 }
