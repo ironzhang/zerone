@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/ironzhang/zerone/rpc/codec"
+	"github.com/ironzhang/zerone/rpc/codec/json-codec"
 	"github.com/ironzhang/zerone/rpc/codes"
 )
 
@@ -206,4 +207,9 @@ func (s *Server) ServeCodec(c codec.ServerCodec) {
 		err = s.call(method, rcvr, args, reply)
 		s.writeResponse(c, req, reply.Interface(), err)
 	}
+}
+
+func (s *Server) ServeConn(rwc io.ReadWriteCloser) {
+	defer rwc.Close()
+	s.ServeCodec(json_codec.NewServerCodec(rwc))
 }
