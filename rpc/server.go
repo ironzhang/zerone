@@ -175,24 +175,35 @@ func (s *Server) call(method reflect.Method, rcvr, args, reply reflect.Value) (e
 	return err
 }
 
-func (s *Server) serveCall(c codec.ServerCodec) bool {
+func (s *Server) ServeRequest(c codec.ServerCodec) error {
 	req, method, rcvr, args, reply, keepReading, err := s.readRequest(c)
 	if err != nil {
+		if !keepReading {
+			return err
+		}
 		if req != nil {
 			s.writeResponse(c, req, nil, err)
 		}
-		return keepReading
+		return err
 	}
-
 	err = s.call(method, rcvr, args, reply)
 	s.writeResponse(c, req, reply.Interface(), err)
-	return keepReading
+	return nil
 }
 
-func (s *Server) serveCodec(c codec.ServerCodec) {
+func (s *Server) ServeCodec(c codec.ServerCodec) {
 	for {
-		if !s.serveCall(c) {
-			break
+		req, method, rcvr, args, reply, keepReading, err := s.readRequest(c)
+		if err != nil {
+			if !keepReading {
+				break
+			}
+			if req != nil {
+				s.writeResponse(c, req, nil, err)
+			}
+			continue
 		}
+		err = s.call(method, rcvr, args, reply)
+		s.writeResponse(c, req, reply.Interface(), err)
 	}
 }

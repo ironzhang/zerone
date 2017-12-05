@@ -598,7 +598,7 @@ func TestServerCallError(t *testing.T) {
 	}
 }
 
-func TestServerServeCall(t *testing.T) {
+func TestServerServeRequest(t *testing.T) {
 	var a Arith
 	var b BuiltinTypes
 	var e Embed
@@ -668,7 +668,7 @@ func TestServerServeCall(t *testing.T) {
 	}
 	for _, tt := range tests {
 		codec := &testServerCodec{reqHeaderErr: tt.reqHeaderErr, reqHeader: tt.reqHeader, reqBodyErr: tt.reqBodyErr, reqBody: tt.reqBody}
-		s.serveCall(codec)
+		s.ServeRequest(codec)
 		if got, want := codec.respHeader, tt.respHeader; got != want {
 			t.Fatalf("respHeader: %+v != %+v", got, want)
 		}
