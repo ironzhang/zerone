@@ -194,6 +194,8 @@ func (s *Server) ServeRequest(c codec.ServerCodec) error {
 	return nil
 }
 
+var emptyResp = struct{}{}
+
 func (s *Server) ServeCodec(c codec.ServerCodec) {
 	for {
 		req, method, rcvr, args, reply, keepReading, err := s.readRequest(c)
@@ -202,7 +204,7 @@ func (s *Server) ServeCodec(c codec.ServerCodec) {
 				break
 			}
 			if req != nil {
-				s.writeResponse(c, req, nil, err)
+				s.writeResponse(c, req, emptyResp, err)
 			}
 			continue
 		}

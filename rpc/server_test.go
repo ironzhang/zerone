@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"net"
 	"reflect"
 	"testing"
 
 	"github.com/ironzhang/zerone/rpc/codec"
+	"github.com/ironzhang/zerone/rpc/codec/json-codec"
 	"github.com/ironzhang/zerone/rpc/codes"
 )
 
@@ -674,6 +676,79 @@ func TestServerServeRequest(t *testing.T) {
 		}
 		if got, want := codec.respBody, tt.respBody; !reflect.DeepEqual(got, want) {
 			t.Fatalf("respBody: %+v != %+v", got, want)
+		}
+	}
+}
+
+func TestServerServeConn(t *testing.T) {
+	cli, svr := net.Pipe()
+	c := json_codec.NewClientCodec(cli)
+	s := NewServer("TestServerServeConn")
+
+	var a Arith
+	var err error
+	if err = s.Register(&a); err != nil {
+		t.Fatalf("Register: %v", err)
+	}
+	go s.ServeConn(svr)
+
+	tests := []struct {
+		reqHeader  codec.RequestHeader
+		reqBody    interface{}
+		respHeader codec.ResponseHeader
+		respBody   interface{}
+		reply      interface{}
+	}{
+		{
+			reqHeader: codec.RequestHeader{
+				ServiceMethod: "Arith.Add",
+				Sequence:      1,
+			},
+			reqBody: Args{1, 2},
+			respHeader: codec.ResponseHeader{
+				ServiceMethod: "Arith.Add",
+				Sequence:      1,
+			},
+			respBody: &Reply{3},
+			reply:    &Reply{},
+		},
+		{
+			reqHeader: codec.RequestHeader{
+				ServiceMethod: "Arith.Add2",
+				Sequence:      2,
+			},
+			reqBody: Args{1, 2},
+			respHeader: codec.ResponseHeader{
+				ServiceMethod: "Arith.Add2",
+				Sequence:      2,
+				Error: codec.Error{
+					Code:   int(codes.InvalidHeader),
+					Desc:   codes.InvalidHeader.String(),
+					Cause:  "can't find method Arith.Add2",
+					Module: "TestServerServeConn",
+				},
+			},
+			respBody: &Reply{},
+			reply:    &Reply{},
+		},
+	}
+	for i, tt := range tests {
+		if err = c.WriteRequest(&tt.reqHeader, tt.reqBody); err != nil {
+			t.Fatalf("%d: WriteRequest: %v", i, err)
+		}
+
+		var respHeader codec.ResponseHeader
+		if err = c.ReadResponseHeader(&respHeader); err != nil {
+			t.Fatalf("%d: ReadResponseHeader: %v", i, err)
+		}
+		if got, want := respHeader, tt.respHeader; got != want {
+			t.Fatalf("%d: respHeader: %v != %v", i, got, want)
+		}
+		if err = c.ReadResponseBody(&tt.reply); err != nil {
+			t.Fatalf("%d: ReadResponseBody: %v", i, err)
+		}
+		if got, want := tt.reply, tt.respBody; !reflect.DeepEqual(got, want) {
+			t.Fatalf("%d: respBody: %v != %v", i, got, want)
 		}
 	}
 }
