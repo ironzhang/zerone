@@ -197,6 +197,7 @@ func (s *Server) ServeRequest(c codec.ServerCodec) error {
 var emptyResp = struct{}{}
 
 func (s *Server) ServeCodec(c codec.ServerCodec) {
+	defer c.Close()
 	for {
 		req, method, rcvr, args, reply, keepReading, err := s.readRequest(c)
 		if err != nil {
@@ -214,7 +215,6 @@ func (s *Server) ServeCodec(c codec.ServerCodec) {
 }
 
 func (s *Server) ServeConn(rwc io.ReadWriteCloser) {
-	defer rwc.Close()
 	s.ServeCodec(json_codec.NewServerCodec(rwc))
 }
 

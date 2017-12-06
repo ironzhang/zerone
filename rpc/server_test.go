@@ -275,6 +275,10 @@ func (c *testServerCodec) WriteResponse(h *codec.ResponseHeader, a interface{}) 
 	return nil
 }
 
+func (c *testServerCodec) Close() error {
+	return nil
+}
+
 func TestServerReadRequestCorrect(t *testing.T) {
 	var a Arith
 	var b BuiltinTypes
