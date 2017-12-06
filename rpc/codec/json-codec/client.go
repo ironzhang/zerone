@@ -30,16 +30,18 @@ type clientResponse struct {
 var _ codec.ClientCodec = &ClientCodec{}
 
 type ClientCodec struct {
+	rwc  io.ReadWriteCloser
 	enc  *json.Encoder
 	dec  *json.Decoder
 	req  clientRequest
 	resp clientResponse
 }
 
-func NewClientCodec(rw io.ReadWriter) *ClientCodec {
+func NewClientCodec(rwc io.ReadWriteCloser) *ClientCodec {
 	return &ClientCodec{
-		enc: json.NewEncoder(rw),
-		dec: json.NewDecoder(rw),
+		rwc: rwc,
+		enc: json.NewEncoder(rwc),
+		dec: json.NewDecoder(rwc),
 	}
 }
 
@@ -85,4 +87,8 @@ func (c *ClientCodec) ReadResponseBody(x interface{}) error {
 		return nil
 	}
 	return json.Unmarshal(c.resp.Body, x)
+}
+
+func (c *ClientCodec) Close() error {
+	return c.rwc.Close()
 }

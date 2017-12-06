@@ -30,16 +30,18 @@ type serverResponse struct {
 var _ codec.ServerCodec = &ServerCodec{}
 
 type ServerCodec struct {
+	rwc  io.ReadWriteCloser
 	enc  *json.Encoder
 	dec  *json.Decoder
 	req  serverRequest
 	resp serverResponse
 }
 
-func NewServerCodec(rw io.ReadWriter) *ServerCodec {
+func NewServerCodec(rwc io.ReadWriteCloser) *ServerCodec {
 	return &ServerCodec{
-		enc: json.NewEncoder(rw),
-		dec: json.NewDecoder(rw),
+		rwc: rwc,
+		enc: json.NewEncoder(rwc),
+		dec: json.NewDecoder(rwc),
 	}
 }
 
@@ -85,4 +87,8 @@ func (c *ServerCodec) WriteResponse(h *codec.ResponseHeader, x interface{}) erro
 	c.resp.Module = h.Error.Module
 	c.resp.Body = x
 	return c.enc.Encode(&c.resp)
+}
+
+func (c *ServerCodec) Close() error {
+	return c.rwc.Close()
 }

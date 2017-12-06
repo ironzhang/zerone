@@ -180,6 +180,10 @@ func (p *CompositeReadWriters) Read(b []byte) (n int, err error) {
 	return p.master.Read(b)
 }
 
+func (p *CompositeReadWriters) Close() error {
+	return nil
+}
+
 func TestWriteReadRequest(t *testing.T) {
 	cli, svr := net.Pipe()
 	defer func() {

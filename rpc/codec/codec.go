@@ -26,10 +26,12 @@ type ClientCodec interface {
 	WriteRequest(*RequestHeader, interface{}) error
 	ReadResponseHeader(*ResponseHeader) error
 	ReadResponseBody(interface{}) error
+	Close() error
 }
 
 type ServerCodec interface {
 	ReadRequestHeader(*RequestHeader) error
 	ReadRequestBody(interface{}) error
 	WriteResponse(*ResponseHeader, interface{}) error
+	Close() error
 }
