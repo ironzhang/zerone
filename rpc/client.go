@@ -20,10 +20,11 @@ type Client struct {
 	sequence uint64
 }
 
-func NewClientWithCodec(c codec.ClientCodec) *Client {
-	client := &Client{codec: c}
-	go client.reading()
-}
+//func NewClientWithCodec(c codec.ClientCodec) *Client {
+//	client := &Client{codec: c}
+//	go client.reading()
+//	return client
+//}
 
 func (c *Client) reading() {
 	//	var err error
@@ -37,6 +38,7 @@ func (c *Client) reading() {
 }
 
 func (c *Client) send(call *Call) error {
+	return nil
 }
 
 func (c *Client) Go(ctx context.Context, serviceMethod string, args interface{}, reply interface{}, done chan *Call) error {
