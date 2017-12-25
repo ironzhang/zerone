@@ -10,8 +10,9 @@ const (
 	Unknown  Code = -1
 	Internal Code = -2
 
-	InvalidHeader  Code = -101
-	InvalidRequest Code = -102
+	InvalidHeader   Code = -101
+	InvalidRequest  Code = -102
+	InvalidResponse Code = -103
 )
 
 var codes = map[Code]string{}
