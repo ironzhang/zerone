@@ -156,6 +156,7 @@ func (c *Client) Go(ctx context.Context, serviceMethod string, args interface{},
 	}
 
 	call := &Call{
+		Context:       ctx,
 		ServiceMethod: serviceMethod,
 		Args:          args,
 		Reply:         reply,
