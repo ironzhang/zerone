@@ -131,3 +131,55 @@ func TestCallError(t *testing.T) {
 		}
 	}
 }
+
+func TestGo(t *testing.T) {
+	c, err := rpc.Dial("tcp", "localhost:2000")
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	defer c.Close()
+
+	var reply int
+	tests := []struct {
+		serviceMethod string
+		args          interface{}
+		reply         interface{}
+	}{
+		{
+			serviceMethod: "Arith.Multiply",
+			args:          Args{A: 2, B: 3},
+			reply:         nil,
+		},
+		{
+			serviceMethod: "Arith.Multiply",
+			args:          Args{A: 2, B: 3},
+			reply:         &reply,
+		},
+		{
+			serviceMethod: "Arith.Divide",
+			args:          Args{A: 2, B: 3},
+			reply:         nil,
+		},
+		{
+			serviceMethod: "Arith.Divide",
+			args:          Args{A: 2, B: 3},
+			reply:         &Quotient{},
+		},
+		{
+			serviceMethod: "Arith.Divide",
+			args:          Args{A: 2, B: 0},
+			reply:         nil,
+		},
+	}
+	done := make(chan *rpc.Call, len(tests))
+	for i, tt := range tests {
+		_, err := c.Go(context.Background(), tt.serviceMethod, tt.args, tt.reply, done)
+		if err != nil {
+			t.Fatalf("case%d: call: %v", i, err)
+		}
+	}
+	for range tests {
+		call := <-done
+		t.Logf("%q: error=%v, reply=%v", call.ServiceMethod, call.Error, call.Reply)
+	}
+}
