@@ -108,7 +108,7 @@ func (c *Client) reading() {
 		return true
 	})
 
-	log.Printf("client shutdown")
+	log.Printf("client quit reading: %v", err)
 }
 
 func (c *Client) send(call *Call) (err error) {
