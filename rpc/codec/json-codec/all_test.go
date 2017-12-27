@@ -132,22 +132,22 @@ func TestResponse(t *testing.T) {
 		}
 
 		if got, want := cresp.ServiceMethod, sresp.ServiceMethod; got != want {
-			t.Fatalf("case%d: ServiceMethod: %v != %v", got, want)
+			t.Fatalf("case%d: ServiceMethod: %v != %v", i, got, want)
 		}
 		if got, want := cresp.Sequence, sresp.Sequence; got != want {
-			t.Fatalf("case%d: Sequence: %v != %v", got, want)
+			t.Fatalf("case%d: Sequence: %v != %v", i, got, want)
 		}
 		if got, want := cresp.Code, sresp.Code; got != want {
-			t.Fatalf("case%d: Code: %v != %v", got, want)
+			t.Fatalf("case%d: Code: %v != %v", i, got, want)
 		}
 		if got, want := cresp.Cause, sresp.Cause; got != want {
-			t.Fatalf("case%d: Message: %v != %v", got, want)
+			t.Fatalf("case%d: Message: %v != %v", i, got, want)
 		}
 		if got, want := cresp.Desc, sresp.Desc; got != want {
-			t.Fatalf("case%d: Description: %v != %v", got, want)
+			t.Fatalf("case%d: Description: %v != %v", i, got, want)
 		}
 		if got, want := cresp.Module, sresp.Module; got != want {
-			t.Fatalf("case%d: ServerName: %v != %v", got, want)
+			t.Fatalf("case%d: ServerName: %v != %v", i, got, want)
 		}
 		if sresp.Body != nil {
 			if got, want := cresp.Body, body; !bytes.Equal(got, want) {
