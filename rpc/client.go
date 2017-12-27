@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"sync"
 	"sync/atomic"
 
@@ -48,6 +49,14 @@ type Client struct {
 	sequence  uint64
 	shutdown  int32
 	available int32
+}
+
+func Dial(network, address string) (*Client, error) {
+	conn, err := net.Dial(network, address)
+	if err != nil {
+		return nil, err
+	}
+	return NewClient(conn), nil
 }
 
 func NewClient(rwc io.ReadWriteCloser) *Client {

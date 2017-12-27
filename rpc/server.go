@@ -212,6 +212,7 @@ func (s *Server) ServeCodec(c codec.ServerCodec) {
 		err = s.call(method, rcvr, args, reply)
 		s.writeResponse(c, req, reply.Interface(), err)
 	}
+	log.Printf("server quit serve codec")
 }
 
 func (s *Server) ServeConn(rwc io.ReadWriteCloser) {
