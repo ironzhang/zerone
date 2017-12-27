@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net"
 	"reflect"
+	"sync"
 	"testing"
 
 	"github.com/ironzhang/zerone/rpc"
@@ -182,4 +183,67 @@ func TestGo(t *testing.T) {
 		call := <-done
 		t.Logf("%q: error=%v, reply=%v", call.ServiceMethod, call.Error, call.Reply)
 	}
+}
+
+func BenchmarkOneClientCall(b *testing.B) {
+	c, err := rpc.Dial("tcp", "localhost:2000")
+	if err != nil {
+		b.Fatalf("dial: %v", err)
+	}
+	defer c.Close()
+
+	var args = Args{4, 2}
+	var reply int
+	var wg sync.WaitGroup
+	wg.Add(b.N)
+	for i := 0; i < b.N; i++ {
+		go func() {
+			defer wg.Done()
+			if err = c.Call(context.Background(), "Arith.Multiply", args, &reply); err != nil {
+				b.Fatalf("call: %v", err)
+			}
+		}()
+	}
+	wg.Wait()
+}
+
+func DialN(network, address string, n int) ([]*rpc.Client, func(), error) {
+	var err error
+	var clients = make([]*rpc.Client, n)
+	for i := 0; i < n; i++ {
+		clients[i], err = rpc.Dial(network, address)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	destroy := func() {
+		for _, c := range clients {
+			c.Close()
+		}
+	}
+	return clients, destroy, nil
+}
+
+func BenchmarkMultClientCall(b *testing.B) {
+	n := 1000
+	clients, destroy, err := DialN("tcp", "localhost:2000", n)
+	if err != nil {
+		b.Fatalf("dial n clients: %v", err)
+	}
+	defer destroy()
+
+	var args = Args{4, 2}
+	var reply int
+	var wg sync.WaitGroup
+	wg.Add(b.N)
+	for i := 0; i < b.N; i++ {
+		go func(c *rpc.Client) {
+			defer wg.Done()
+			if err = c.Call(context.Background(), "Arith.Multiply", args, &reply); err != nil {
+				b.Fatalf("call: %v", err)
+			}
+		}(clients[i%n])
+	}
+	wg.Wait()
 }

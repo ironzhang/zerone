@@ -100,7 +100,7 @@ func (c *Client) reading() {
 	var err error
 	for keepReading := true; keepReading; {
 		if keepReading, err = c.readResponse(); err != nil {
-			log.Printf("read response: %v", err)
+			//log.Printf("read response: %v", err)
 		}
 	}
 
@@ -117,7 +117,7 @@ func (c *Client) reading() {
 		return true
 	})
 
-	log.Printf("client quit reading: %v", err)
+	//log.Printf("client quit reading: %v", err)
 }
 
 func (c *Client) send(call *Call) (err error) {
