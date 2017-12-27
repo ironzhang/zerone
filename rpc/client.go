@@ -60,40 +60,37 @@ func NewClientWithCodec(c codec.ClientCodec) *Client {
 	return client
 }
 
-func (c *Client) readResponse() (err error) {
+func (c *Client) readResponse() (keepReading bool, err error) {
 	var resp codec.ResponseHeader
 	if err = c.codec.ReadResponseHeader(&resp); err != nil {
-		return err
+		return false, err
 	}
 
 	value, ok := c.pending.Load(resp.Sequence)
 	if !ok {
 		c.codec.ReadResponseBody(nil)
-		return fmt.Errorf("sequence(%d) not found", resp.Sequence)
+		return true, fmt.Errorf("sequence(%d) not found", resp.Sequence)
 	}
 	c.pending.Delete(resp.Sequence)
 	call := value.(*Call)
 
 	if resp.Error.Code != 0 {
+		err = c.codec.ReadResponseBody(nil)
 		call.Error = ModuleErrorf(resp.Error.Module, codes.Code(resp.Error.Code), resp.Error.Cause)
 		call.done()
-		return c.codec.ReadResponseBody(nil)
+		return true, err
 	}
-
 	if err = c.codec.ReadResponseBody(call.Reply); err != nil {
 		call.Error = NewError(codes.InvalidResponse, err)
 	}
 	call.done()
-	return err
+	return true, err
 }
 
 func (c *Client) reading() {
 	var err error
-	for {
-		if err = c.readResponse(); err != nil {
-			if err == io.EOF || err == io.ErrUnexpectedEOF {
-				break
-			}
+	for keepReading := true; keepReading; {
+		if keepReading, err = c.readResponse(); err != nil {
 			log.Printf("read response: %v", err)
 		}
 	}
@@ -110,6 +107,8 @@ func (c *Client) reading() {
 		call.done()
 		return true
 	})
+
+	log.Printf("client shutdown")
 }
 
 func (c *Client) send(call *Call) (err error) {

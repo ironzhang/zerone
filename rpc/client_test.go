@@ -81,7 +81,7 @@ func TestClientReadResponseCorrect(t *testing.T) {
 			Done:  make(chan *Call, 1),
 		}
 		client.pending.Store(tt.header.Sequence, call)
-		if err := client.readResponse(); err != nil {
+		if _, err := client.readResponse(); err != nil {
 			t.Fatalf("case%d: read response: %v", i, err)
 		}
 		<-call.Done
@@ -125,11 +125,9 @@ func TestClientReadResponseError(t *testing.T) {
 	for i, tt := range tests {
 		clientCodec := &testClientCodec{respHeaderErr: tt.headerErr, respHeader: tt.header, respBodyErr: tt.bodyErr}
 		client := Client{codec: clientCodec}
-		call := &Call{
-			Done: make(chan *Call, 1),
-		}
+		call := &Call{Done: make(chan *Call, 1)}
 		client.pending.Store(tt.header.Sequence, call)
-		err := client.readResponse()
+		_, err := client.readResponse()
 		if err != tt.expectErr {
 			t.Fatalf("case%d: read response expect %v but got %v", i, tt.expectErr, err)
 		}
@@ -147,6 +145,45 @@ func TestClientReadResponseError(t *testing.T) {
 func CodecPipe() (codec.ClientCodec, codec.ServerCodec) {
 	c, s := net.Pipe()
 	return json_codec.NewClientCodec(c), json_codec.NewServerCodec(s)
+}
+
+func TestClientReading(t *testing.T) {
+	tests := []struct {
+		header codec.ResponseHeader
+		body   interface{}
+		reply  interface{}
+	}{
+		{
+			header: codec.ResponseHeader{Sequence: 1},
+			body:   &Reply{3},
+			reply:  &Reply{},
+		},
+		{
+			header: codec.ResponseHeader{Sequence: 1},
+			body:   &Reply{3},
+			reply:  &Reply{},
+		},
+	}
+
+	clientCodec, serverCodec := CodecPipe()
+	client := &Client{codec: clientCodec}
+	call := &Call{Done: make(chan *Call, 1)}
+	client.pending.Store(0, call)
+	go func() {
+		for i, tt := range tests {
+			call := &Call{Reply: tt.reply, Done: make(chan *Call, 1)}
+			client.pending.Store(tt.header.Sequence, call)
+			serverCodec.WriteResponse(&tt.header, tt.body)
+			<-call.Done
+			if got, want := tt.reply, tt.body; !reflect.DeepEqual(got, want) {
+				t.Errorf("case%d: reply: %v != %v", i, got, want)
+			}
+		}
+		serverCodec.Close()
+	}()
+	client.reading()
+	<-call.Done
+	t.Logf("Error: %v", call.Error)
 }
 
 func TestClientCall(t *testing.T) {
@@ -183,6 +220,7 @@ func TestClientCall(t *testing.T) {
 		}
 	}()
 	client := NewClientWithCodec(clientCodec)
+	defer client.Close()
 	for _, tt := range tests {
 		if err := client.Call(context.Background(), tt.serviceMethod, tt.args, tt.reply); err != nil {
 			t.Fatalf("call %q: %v", tt.serviceMethod, err)
