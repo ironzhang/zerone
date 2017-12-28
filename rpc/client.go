@@ -12,7 +12,7 @@ import (
 
 	"github.com/ironzhang/pearls/uuid"
 	"github.com/ironzhang/zerone/rpc/codec"
-	"github.com/ironzhang/zerone/rpc/codec/json-codec"
+	"github.com/ironzhang/zerone/rpc/codec/json_codec"
 	"github.com/ironzhang/zerone/rpc/codes"
 )
 

@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/ironzhang/zerone/rpc/codec"
-	"github.com/ironzhang/zerone/rpc/codec/json-codec"
+	"github.com/ironzhang/zerone/rpc/codec/json_codec"
 	"github.com/ironzhang/zerone/rpc/codes"
 )
 
