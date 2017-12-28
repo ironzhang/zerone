@@ -10,6 +10,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/ironzhang/pearls/uuid"
 	"github.com/ironzhang/zerone/rpc/codec"
 	"github.com/ironzhang/zerone/rpc/codec/json-codec"
 	"github.com/ironzhang/zerone/rpc/codes"
@@ -135,7 +136,7 @@ func (c *Client) send(call *Call) (err error) {
 
 	traceID, ok := ParseTraceID(call.Context)
 	if !ok {
-		traceID = "new-trace-id"
+		traceID = uuid.New().String()
 	}
 	verbose, _ := ParseVerbose(call.Context)
 
