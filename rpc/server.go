@@ -198,6 +198,8 @@ var emptyResp = struct{}{}
 
 func (s *Server) ServeCodec(c codec.ServerCodec) {
 	defer c.Close()
+
+	var mu sync.Mutex
 	for {
 		req, method, rcvr, args, reply, keepReading, err := s.readRequest(c)
 		if err != nil {
@@ -209,8 +211,13 @@ func (s *Server) ServeCodec(c codec.ServerCodec) {
 			}
 			continue
 		}
-		err = s.call(method, rcvr, args, reply)
-		s.writeResponse(c, req, reply.Interface(), err)
+
+		go func() {
+			err = s.call(method, rcvr, args, reply)
+			mu.Lock()
+			defer mu.Unlock()
+			s.writeResponse(c, req, reply.Interface(), err)
+		}()
 	}
 	//log.Printf("server quit serve codec")
 }
