@@ -5,7 +5,9 @@ import (
 	"errors"
 	"net"
 	"reflect"
+	"runtime"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/ironzhang/zerone/rpc"
@@ -185,26 +187,40 @@ func TestGo(t *testing.T) {
 	}
 }
 
+func benchmarkClientCall(b *testing.B, c *rpc.Client) {
+	b.StopTimer()
+	var N = int64(b.N)
+	var args = Args{4, 2}
+	var procs = runtime.GOMAXPROCS(-1) * 10
+	b.StartTimer()
+
+	var wg sync.WaitGroup
+	wg.Add(procs)
+	for i := 0; i < procs; i++ {
+		go func() {
+			var err error
+			var reply int
+			for atomic.AddInt64(&N, -1) >= 0 {
+				if err = c.Call(context.Background(), "Arith.Multiply", args, &reply); err != nil {
+					b.Errorf("client call: %v", err)
+				}
+				if reply != args.A*args.B {
+					b.Errorf("reply: %d != %d * %d", reply, args.A, args.B)
+				}
+			}
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+}
+
 func BenchmarkOneClientCall(b *testing.B) {
 	c, err := rpc.Dial("tcp", "localhost:2000")
 	if err != nil {
 		b.Fatalf("dial: %v", err)
 	}
 	defer c.Close()
-
-	var args = Args{4, 2}
-	var reply int
-	var wg sync.WaitGroup
-	wg.Add(b.N)
-	for i := 0; i < b.N; i++ {
-		go func() {
-			defer wg.Done()
-			if err = c.Call(context.Background(), "Arith.Multiply", args, &reply); err != nil {
-				b.Fatalf("call: %v", err)
-			}
-		}()
-	}
-	wg.Wait()
+	benchmarkClientCall(b, c)
 }
 
 func DialN(network, address string, n int) ([]*rpc.Client, func(), error) {
