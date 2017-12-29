@@ -226,12 +226,13 @@ func DialN(network, address string, n int) ([]*rpc.Client, func(), error) {
 }
 
 func BenchmarkMultClientCall(b *testing.B) {
+	b.StopTimer()
 	n := 1000
 	clients, destroy, err := DialN("tcp", "localhost:2000", n)
 	if err != nil {
 		b.Fatalf("dial n clients: %v", err)
 	}
-	defer destroy()
+	b.StartTimer()
 
 	var args = Args{4, 2}
 	var reply int
@@ -246,4 +247,8 @@ func BenchmarkMultClientCall(b *testing.B) {
 		}(clients[i%n])
 	}
 	wg.Wait()
+
+	b.StopTimer()
+	destroy()
+	b.StartTimer()
 }
