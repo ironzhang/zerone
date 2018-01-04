@@ -15,6 +15,5 @@
 - 支持点对点和广播这两种调用策略
 - 支持Failover、Failfast、Failtry等多种失败重试策略
 - 限流(server和client都要支持)、熔断、超时
-- 日志追踪
-- 指标监控
+- 日志追踪(zerone框架日志、RPC调用链追踪)、指标监控
 
