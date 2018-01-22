@@ -120,6 +120,13 @@ func (c *Client) reading() {
 	zlog.Tracef("client quit reading: %v", err)
 }
 
+func (c *Client) writeRequest(call *Call) error {
+	// ClientCodec.WriteRequest不能保证并发安全, 所以这里需要加锁保护
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	return c.codec.WriteRequest(&call.Header, call.Args)
+}
+
 func (c *Client) send(call *Call) (err error) {
 	if _, loaded := c.pending.LoadOrStore(call.Header.Sequence, call); loaded {
 		return fmt.Errorf("sequence(%d) duplicate", call.Header.Sequence)
@@ -129,13 +136,6 @@ func (c *Client) send(call *Call) (err error) {
 		return err
 	}
 	return nil
-}
-
-func (c *Client) writeRequest(call *Call) error {
-	// ClientCodec.WriteRequest不能保证并发安全, 所以这里需要加锁保护
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	return c.codec.WriteRequest(&call.Header, call.Args)
 }
 
 func (c *Client) Go(ctx context.Context, serviceMethod string, args interface{}, reply interface{}, done chan *Call) (*Call, error) {
