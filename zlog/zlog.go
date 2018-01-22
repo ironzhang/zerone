@@ -21,6 +21,9 @@ type Logger interface {
 	Error(args ...interface{})
 	Errorf(format string, args ...interface{})
 
+	Panic(args ...interface{})
+	Panicf(format string, args ...interface{})
+
 	Fatal(args ...interface{})
 	Fatalf(format string, args ...interface{})
 }
@@ -79,6 +82,14 @@ func Error(args ...interface{}) {
 
 func Errorf(format string, args ...interface{}) {
 	logging.Errorf(format, args...)
+}
+
+func Panic(args ...interface{}) {
+	logging.Panic(args...)
+}
+
+func Panicf(format string, args ...interface{}) {
+	logging.Panicf(format, args...)
 }
 
 func Fatal(args ...interface{}) {

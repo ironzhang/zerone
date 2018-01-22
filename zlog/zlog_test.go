@@ -25,6 +25,9 @@ func PrintTestZLogs(msg string) {
 	zlog.Error("error", 1, "2", 3.0)
 	zlog.Errorf("errorf: %v, %v, %v", 1, "2", 3.0)
 
+	//	zlog.Panic("panic", 1, "2", 3.0)
+	//	zlog.Panicf("panicf: %v, %v, %v", 1, "2", 3.0)
+
 	//	zlog.Fatal("fatal", 1, "2", 3.0)
 	//	zlog.Fatalf("fatalf: %v, %v, %v", 1, "2", 3.0)
 }

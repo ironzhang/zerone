@@ -65,6 +65,9 @@ func PrintTestLogs(msg string, l *ZLogger) {
 	l.Error("error", 1, "2", 3.0)
 	l.Errorf("errorf: %v, %v, %v", 1, "2", 3.0)
 
+	//	l.Panic("panic", 1, "2", 3.0)
+	//	l.Panicf("panicf: %v, %v, %v", 1, "2", 3.0)
+
 	//	l.Fatal("fatal", 1, "2", 3.0)
 	//	l.Fatalf("fatalf: %v, %v, %v", 1, "2", 3.0)
 }

@@ -14,7 +14,8 @@ const (
 	INFO  Level = 0
 	WARN  Level = 1
 	ERROR Level = 2
-	FATAL Level = 3
+	PANIC Level = 3
+	FATAL Level = 4
 )
 
 func (l Level) String() string {
@@ -29,6 +30,8 @@ func (l Level) String() string {
 		return "WARN"
 	case ERROR:
 		return "ERROR"
+	case PANIC:
+		return "PANIC"
 	case FATAL:
 		return "FATAL"
 	default:
@@ -120,6 +123,20 @@ func (p *ZLogger) Errorf(format string, args ...interface{}) {
 	if p.level <= ERROR {
 		p.logger.Output(p.calldepth, sprintf(ERROR, format, args...))
 	}
+}
+
+func (p *ZLogger) Panic(args ...interface{}) {
+	if p.level <= PANIC {
+		p.logger.Output(p.calldepth, sprint(PANIC, args...))
+	}
+	panic(fmt.Sprint(args...))
+}
+
+func (p *ZLogger) Panicf(format string, args ...interface{}) {
+	if p.level <= PANIC {
+		p.logger.Output(p.calldepth, sprintf(PANIC, format, args...))
+	}
+	panic(fmt.Sprintf(format, args...))
 }
 
 func (p *ZLogger) Fatal(args ...interface{}) {
