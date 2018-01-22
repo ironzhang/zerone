@@ -18,14 +18,14 @@ func ParseTraceID(ctx context.Context) (string, bool) {
 
 type keyVerbose struct{}
 
-func WithVerbose(ctx context.Context, verbose bool) context.Context {
+func WithVerbose(ctx context.Context, verbose int) context.Context {
 	return context.WithValue(ctx, keyVerbose{}, verbose)
 }
 
-func ParseVerbose(ctx context.Context) (bool, bool) {
+func ParseVerbose(ctx context.Context) (int, bool) {
 	value := ctx.Value(keyVerbose{})
-	if verbose, ok := value.(bool); ok {
+	if verbose, ok := value.(int); ok {
 		return verbose, true
 	}
-	return false, false
+	return 0, false
 }

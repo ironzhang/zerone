@@ -314,7 +314,7 @@ func TestServerReadRequestCorrect(t *testing.T) {
 			Sequence:      rand.Uint64(),
 			TraceID:       "TraceID",
 			ClientName:    "ClientName",
-			Verbose:       true,
+			Verbose:       1,
 		}
 		codec := &testServerCodec{reqHeader: header, reqBody: tt.args}
 
