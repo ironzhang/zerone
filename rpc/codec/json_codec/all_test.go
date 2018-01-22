@@ -27,8 +27,7 @@ func TestRequest(t *testing.T) {
 			Sequence:      1,
 			TraceID:       "1",
 			ClientName:    "client-1",
-			Verbose:       true,
-			Cancel:        false,
+			Verbose:       1,
 			Body:          &Args{A: 1, B: 2},
 		},
 		{
@@ -36,8 +35,7 @@ func TestRequest(t *testing.T) {
 			Sequence:      1,
 			TraceID:       "1",
 			ClientName:    "client-1",
-			Verbose:       true,
-			Cancel:        false,
+			Verbose:       1,
 			Body:          "hello",
 		},
 		{
@@ -45,8 +43,7 @@ func TestRequest(t *testing.T) {
 			Sequence:      1,
 			TraceID:       "1",
 			ClientName:    "client-1",
-			Verbose:       true,
-			Cancel:        true,
+			Verbose:       1,
 			Body:          nil,
 		},
 	}
@@ -71,16 +68,13 @@ func TestRequest(t *testing.T) {
 			t.Fatalf("case%d: Sequence: %v != %v", i, got, want)
 		}
 		if got, want := sreq.TraceID, creq.TraceID; got != want {
-			t.Fatalf("case%d: Sequence: %v != %v", i, got, want)
+			t.Fatalf("case%d: TraceID: %v != %v", i, got, want)
 		}
 		if got, want := sreq.ClientName, creq.ClientName; got != want {
-			t.Fatalf("case%d: Sequence: %v != %v", i, got, want)
+			t.Fatalf("case%d: ClientName: %v != %v", i, got, want)
 		}
 		if got, want := sreq.Verbose, creq.Verbose; got != want {
-			t.Fatalf("case%d: Sequence: %v != %v", i, got, want)
-		}
-		if got, want := sreq.Cancel, creq.Cancel; got != want {
-			t.Fatalf("case%d: Sequence: %v != %v", i, got, want)
+			t.Fatalf("case%d: Verbose: %v != %v", i, got, want)
 		}
 		if creq.Body != nil {
 			if got, want := sreq.Body, body; !bytes.Equal(got, want) {
@@ -206,7 +200,7 @@ func TestWriteReadRequest(t *testing.T) {
 				Sequence:      1,
 				TraceID:       "1",
 				ClientName:    "client-1",
-				Verbose:       true,
+				Verbose:       1,
 			},
 			x: &Args{A: 1, B: 2},
 			y: &Args{},
@@ -217,8 +211,7 @@ func TestWriteReadRequest(t *testing.T) {
 				Sequence:      1,
 				TraceID:       "1",
 				ClientName:    "client-1",
-				Verbose:       true,
-				Cancel:        true,
+				Verbose:       1,
 			},
 			x: nil,
 			y: nil,
@@ -229,7 +222,7 @@ func TestWriteReadRequest(t *testing.T) {
 				Sequence:      2,
 				TraceID:       "2",
 				ClientName:    "client-2",
-				Verbose:       false,
+				Verbose:       0,
 			},
 			x: &s1,
 			y: &s2,
@@ -240,7 +233,7 @@ func TestWriteReadRequest(t *testing.T) {
 				Sequence:      3,
 				TraceID:       "3",
 				ClientName:    "client-3",
-				Verbose:       false,
+				Verbose:       0,
 			},
 			x: nil,
 			y: nil,

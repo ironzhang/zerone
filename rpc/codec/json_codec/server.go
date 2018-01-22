@@ -7,26 +7,6 @@ import (
 	"github.com/ironzhang/zerone/rpc/codec"
 )
 
-type serverRequest struct {
-	ServiceMethod string          `json:"ServiceMethod"`
-	Sequence      uint64          `json:"Sequence"`
-	TraceID       string          `json:"TraceID"`
-	ClientName    string          `json:"ClientName"`
-	Verbose       bool            `json:"Verbose,omitempty"`
-	Cancel        bool            `json:"Cancel,omitempty"`
-	Body          json.RawMessage `json:"Body,omitempty"`
-}
-
-type serverResponse struct {
-	ServiceMethod string      `json:"ServiceMethod"`
-	Sequence      uint64      `json:"Sequence"`
-	Code          int         `json:"Code"`
-	Desc          string      `json:"Desc,omitempty"`
-	Cause         string      `json:"Cause,omitempty"`
-	Module        string      `json:"Module,omitempty"`
-	Body          interface{} `json:"Body,omitempty"`
-}
-
 var _ codec.ServerCodec = &ServerCodec{}
 
 type ServerCodec struct {
@@ -50,8 +30,7 @@ func (c *ServerCodec) reset() {
 	c.req.Sequence = 0
 	c.req.TraceID = ""
 	c.req.ClientName = ""
-	c.req.Verbose = false
-	c.req.Cancel = false
+	c.req.Verbose = 0
 	c.req.Body = nil
 }
 
@@ -67,7 +46,6 @@ func (c *ServerCodec) ReadRequestHeader(h *codec.RequestHeader) error {
 	h.TraceID = c.req.TraceID
 	h.ClientName = c.req.ClientName
 	h.Verbose = c.req.Verbose
-	h.Cancel = c.req.Cancel
 	return nil
 }
 
