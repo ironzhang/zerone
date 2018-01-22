@@ -22,12 +22,11 @@ var (
 )
 
 type Call struct {
-	Context       context.Context
-	ServiceMethod string
-	Args          interface{}
-	Reply         interface{}
-	Error         error
-	Done          chan *Call
+	Header codec.RequestHeader
+	Args   interface{}
+	Reply  interface{}
+	Error  error
+	Done   chan *Call
 }
 
 func (c *Call) done() {
@@ -122,40 +121,31 @@ func (c *Client) reading() {
 }
 
 func (c *Client) send(call *Call) (err error) {
-	if atomic.LoadInt32(&c.shutdown) == 1 {
-		return ErrShutdown
+	if _, loaded := c.pending.LoadOrStore(call.Header.Sequence, call); loaded {
+		return fmt.Errorf("sequence(%d) duplicate", call.Header.Sequence)
 	}
-	if atomic.LoadInt32(&c.available) == 1 {
-		return ErrUnavailable
-	}
-
-	sequence := atomic.AddUint64(&c.sequence, 1)
-	if _, loaded := c.pending.LoadOrStore(sequence, call); loaded {
-		return fmt.Errorf("sequence(%d) duplicate", sequence)
-	}
-
-	traceID, ok := ParseTraceID(call.Context)
-	if !ok {
-		traceID = uuid.New().String()
-	}
-	verbose, _ := ParseVerbose(call.Context)
-
-	// ClientCodec.WriteRequest不能保证并发安全, 所以这里需要加锁保护
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-	c.request.ServiceMethod = call.ServiceMethod
-	c.request.Sequence = sequence
-	c.request.TraceID = traceID
-	c.request.ClientName = c.name
-	c.request.Verbose = verbose
-	if err = c.codec.WriteRequest(&c.request, call.Args); err != nil {
-		c.pending.Delete(sequence)
+	if err = c.writeRequest(call); err != nil {
+		c.pending.Delete(call.Header.Sequence)
 		return err
 	}
 	return nil
 }
 
+func (c *Client) writeRequest(call *Call) error {
+	// ClientCodec.WriteRequest不能保证并发安全, 所以这里需要加锁保护
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	return c.codec.WriteRequest(&call.Header, call.Args)
+}
+
 func (c *Client) Go(ctx context.Context, serviceMethod string, args interface{}, reply interface{}, done chan *Call) (*Call, error) {
+	if atomic.LoadInt32(&c.shutdown) == 1 {
+		return nil, ErrShutdown
+	}
+	if atomic.LoadInt32(&c.available) == 1 {
+		return nil, ErrUnavailable
+	}
+
 	if done == nil {
 		done = make(chan *Call, 10)
 	} else {
@@ -164,12 +154,24 @@ func (c *Client) Go(ctx context.Context, serviceMethod string, args interface{},
 		}
 	}
 
+	sequence := atomic.AddUint64(&c.sequence, 1)
+	verbose, _ := ParseVerbose(ctx)
+	traceID, ok := ParseTraceID(ctx)
+	if !ok {
+		traceID = uuid.New().String()
+	}
+
 	call := &Call{
-		Context:       ctx,
-		ServiceMethod: serviceMethod,
-		Args:          args,
-		Reply:         reply,
-		Done:          done,
+		Header: codec.RequestHeader{
+			ServiceMethod: serviceMethod,
+			Sequence:      sequence,
+			ClientName:    c.name,
+			TraceID:       traceID,
+			Verbose:       verbose,
+		},
+		Args:  args,
+		Reply: reply,
+		Done:  done,
 	}
 	if err := c.send(call); err != nil {
 		return nil, err

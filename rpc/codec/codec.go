@@ -3,8 +3,8 @@ package codec
 type RequestHeader struct {
 	ServiceMethod string // 服务方法名
 	Sequence      uint64 // 序号
-	TraceID       string // TraceID
 	ClientName    string // 客户端名称
+	TraceID       string // TraceID
 	Verbose       int    // 日志详情等级
 }
 
