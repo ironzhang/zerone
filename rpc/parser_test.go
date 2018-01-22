@@ -5,7 +5,14 @@ import (
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/ironzhang/zerone/zlog"
 )
+
+func init() {
+	//zlog.Default.SetLevel(zlog.DEBUG)
+	zlog.Default.SetLevel(zlog.WARN)
+}
 
 func TestIsExported(t *testing.T) {
 	tests := []struct {

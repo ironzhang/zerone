@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -14,6 +13,7 @@ import (
 	"github.com/ironzhang/zerone/rpc/codec"
 	"github.com/ironzhang/zerone/rpc/codec/json_codec"
 	"github.com/ironzhang/zerone/rpc/codes"
+	"github.com/ironzhang/zerone/zlog"
 )
 
 var (
@@ -35,7 +35,7 @@ func (c *Call) done() {
 	case c.Done <- c:
 		// ok
 	default:
-		log.Println("rpc: discarding Call reply due to insufficient Done chan capacity")
+		zlog.Warn("rpc: discarding Call reply due to insufficient Done chan capacity")
 	}
 }
 
@@ -101,7 +101,7 @@ func (c *Client) reading() {
 	var err error
 	for keepReading := true; keepReading; {
 		if keepReading, err = c.readResponse(); err != nil {
-			//log.Printf("read response: %v", err)
+			zlog.Tracef("read response: %v", err)
 		}
 	}
 
@@ -118,7 +118,7 @@ func (c *Client) reading() {
 		return true
 	})
 
-	//log.Printf("client quit reading: %v", err)
+	zlog.Tracef("client quit reading: %v", err)
 }
 
 func (c *Client) send(call *Call) (err error) {
@@ -160,7 +160,7 @@ func (c *Client) Go(ctx context.Context, serviceMethod string, args interface{},
 		done = make(chan *Call, 10)
 	} else {
 		if cap(done) == 0 {
-			log.Panic("rpc: done channel is unbuffered")
+			zlog.Panic("rpc: done channel is unbuffered")
 		}
 	}
 

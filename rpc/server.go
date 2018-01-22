@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"reflect"
 	"strings"
@@ -13,6 +12,7 @@ import (
 	"github.com/ironzhang/zerone/rpc/codec"
 	"github.com/ironzhang/zerone/rpc/codec/json_codec"
 	"github.com/ironzhang/zerone/rpc/codes"
+	"github.com/ironzhang/zerone/zlog"
 )
 
 type Server struct {
@@ -219,7 +219,7 @@ func (s *Server) ServeCodec(c codec.ServerCodec) {
 			s.writeResponse(c, req, reply.Interface(), err)
 		}()
 	}
-	//log.Printf("server quit serve codec")
+	zlog.Trace("server quit serve codec")
 }
 
 func (s *Server) ServeConn(rwc io.ReadWriteCloser) {
@@ -230,7 +230,7 @@ func (s *Server) Accept(ln net.Listener) {
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			log.Printf("rpc.Accept: %v", err)
+			zlog.Tracef("rpc.Accept: %v", err)
 			return
 		}
 		go s.ServeConn(conn)
