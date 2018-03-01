@@ -5,9 +5,6 @@ import (
 	"errors"
 	"net"
 	"reflect"
-	"runtime"
-	"sync"
-	"sync/atomic"
 	"testing"
 
 	"github.com/ironzhang/zerone/rpc"
@@ -187,13 +184,18 @@ func TestGo(t *testing.T) {
 	}
 }
 
-func SerialCall(b *testing.B, c *rpc.Client, n int) {
-	var err error
+func BenchmarkOneClientSerialCall(b *testing.B) {
+	c, err := rpc.Dial("tcp", "localhost:2000")
+	if err != nil {
+		b.Fatalf("dial: %v", err)
+	}
+	defer c.Close()
+
 	var reply int
 	var args = Args{4, 4}
 	var result = args.A * args.B
 	var ctx = context.Background()
-	for i := 0; i < n; i++ {
+	for i := 0; i < b.N; i++ {
 		if err = c.Call(ctx, "Arith.Multiply", &args, &reply); err != nil {
 			b.Errorf("Call Arith.Multiply: %v", err)
 		}
@@ -203,41 +205,6 @@ func SerialCall(b *testing.B, c *rpc.Client, n int) {
 	}
 }
 
-func ParallelCall(b *testing.B, c *rpc.Client, n, procs int) {
-	var N = int64(n)
-	var wg sync.WaitGroup
-	wg.Add(procs)
-	for i := 0; i < procs; i++ {
-		go func() {
-			var err error
-			var reply int
-			var args = Args{4, 4}
-			var result = args.A * args.B
-			var ctx = context.Background()
-			for atomic.AddInt64(&N, -1) >= 0 {
-				if err = c.Call(ctx, "Arith.Multiply", &args, &reply); err != nil {
-					b.Errorf("Call Arith.Multiply: %v", err)
-				}
-				if reply != result {
-					b.Errorf("Result: %d != %d * %d", reply, args.A, args.B)
-				}
-			}
-			wg.Done()
-		}()
-	}
-	wg.Wait()
-}
-
-func BenchmarkOneClientSerialCall(b *testing.B) {
-	c, err := rpc.Dial("tcp", "localhost:2000")
-	if err != nil {
-		b.Fatalf("dial: %v", err)
-	}
-	defer c.Close()
-
-	SerialCall(b, c, b.N)
-}
-
 func BenchmarkOneClientParallelCall(b *testing.B) {
 	c, err := rpc.Dial("tcp", "localhost:2000")
 	if err != nil {
@@ -245,40 +212,44 @@ func BenchmarkOneClientParallelCall(b *testing.B) {
 	}
 	defer c.Close()
 
-	procs := runtime.GOMAXPROCS(-1) * 10
-	ParallelCall(b, c, b.N, procs)
+	b.SetParallelism(10)
+	b.RunParallel(func(pb *testing.PB) {
+		var err error
+		var reply int
+		var args = Args{4, 4}
+		var result = args.A * args.B
+		var ctx = context.Background()
+		for pb.Next() {
+			if err = c.Call(ctx, "Arith.Multiply", &args, &reply); err != nil {
+				b.Errorf("Call Arith.Multiply: %v", err)
+			}
+			if reply != result {
+				b.Errorf("Result: %d != %d * %d", reply, args.A, args.B)
+			}
+		}
+	})
 }
 
 func BenchmarkNClientsCall(b *testing.B) {
-	N := 100
-	procs := runtime.GOMAXPROCS(-1) * 10
-
-	b.StopTimer()
-	ns := make([]int, 0, N)
-	quo, rem := b.N/N, b.N%N
-	if quo != 0 {
-		for i := 1; i*quo <= b.N; i++ {
-			ns = append(ns, quo)
+	b.SetParallelism(100)
+	b.RunParallel(func(pb *testing.PB) {
+		c, err := rpc.Dial("tcp", "localhost:2000")
+		if err != nil {
+			b.Fatalf("dial: %v", err)
 		}
-	}
-	if rem != 0 {
-		ns = append(ns, rem)
-	}
-	b.StartTimer()
+		defer c.Close()
 
-	var wg sync.WaitGroup
-	wg.Add(len(ns))
-	for _, n := range ns {
-		go func(n int) {
-			c, err := rpc.Dial("tcp", "localhost:2000")
-			if err != nil {
-				b.Fatalf("dial: %v", err)
+		var reply int
+		var args = Args{4, 4}
+		var result = args.A * args.B
+		var ctx = context.Background()
+		for pb.Next() {
+			if err = c.Call(ctx, "Arith.Multiply", &args, &reply); err != nil {
+				b.Errorf("Call Arith.Multiply: %v", err)
 			}
-			defer c.Close()
-			ParallelCall(b, c, n, procs)
-			wg.Done()
-		}(n)
-
-	}
-	wg.Wait()
+			if reply != result {
+				b.Errorf("Result: %d != %d * %d", reply, args.A, args.B)
+			}
+		}
+	})
 }
