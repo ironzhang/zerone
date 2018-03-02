@@ -3,6 +3,7 @@ package json_codec
 import (
 	"encoding/json"
 	"io"
+	"sync"
 
 	"github.com/ironzhang/zerone/rpc/codec"
 )
@@ -10,6 +11,7 @@ import (
 var _ codec.ClientCodec = &ClientCodec{}
 
 type ClientCodec struct {
+	mu   sync.Mutex
 	rwc  io.ReadWriteCloser
 	enc  *json.Encoder
 	dec  *json.Decoder
@@ -26,6 +28,8 @@ func NewClientCodec(rwc io.ReadWriteCloser) *ClientCodec {
 }
 
 func (c *ClientCodec) WriteRequest(h *codec.RequestHeader, x interface{}) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	c.req.ServiceMethod = h.ServiceMethod
 	c.req.Sequence = h.Sequence
 	c.req.TraceID = h.TraceID

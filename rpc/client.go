@@ -39,12 +39,8 @@ func (c *Call) done() {
 }
 
 type Client struct {
-	name string
-
-	mutex   sync.Mutex
-	request codec.RequestHeader
-	codec   codec.ClientCodec
-
+	name      string
+	codec     codec.ClientCodec
 	pending   sync.Map
 	sequence  uint64
 	shutdown  int32
@@ -121,9 +117,6 @@ func (c *Client) reading() {
 }
 
 func (c *Client) writeRequest(call *Call) error {
-	// ClientCodec.WriteRequest不能保证并发安全, 所以这里需要加锁保护
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
 	return c.codec.WriteRequest(&call.Header, call.Args)
 }
 
