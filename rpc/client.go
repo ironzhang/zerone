@@ -13,6 +13,7 @@ import (
 	"github.com/ironzhang/zerone/rpc/codec"
 	"github.com/ironzhang/zerone/rpc/codec/json_codec"
 	"github.com/ironzhang/zerone/rpc/codes"
+	"github.com/ironzhang/zerone/rpc/trace"
 	"github.com/ironzhang/zerone/zlog"
 )
 
@@ -27,9 +28,14 @@ type Call struct {
 	Reply  interface{}
 	Error  error
 	Done   chan *Call
+
+	trace trace.Trace
 }
 
 func (c *Call) done() {
+	if c.trace != nil {
+		c.trace.PrintResponse(c.Error, c.Reply)
+	}
 	select {
 	case c.Done <- c:
 		// ok
@@ -38,9 +44,21 @@ func (c *Call) done() {
 	}
 }
 
+func (c *Call) send(codec codec.ClientCodec) error {
+	if err := codec.WriteRequest(&c.Header, c.Args); err != nil {
+		return err
+	}
+	if c.trace != nil {
+		c.trace.PrintRequest(c.Args)
+	}
+	return nil
+}
+
 type Client struct {
-	name      string
-	codec     codec.ClientCodec
+	name   string
+	codec  codec.ClientCodec
+	logger *trace.Logger
+
 	pending   sync.Map
 	sequence  uint64
 	shutdown  int32
@@ -60,7 +78,10 @@ func NewClient(rwc io.ReadWriteCloser) *Client {
 }
 
 func NewClientWithCodec(c codec.ClientCodec) *Client {
-	client := &Client{codec: c}
+	client := &Client{
+		codec:  c,
+		logger: trace.NewLogger(nil, 0),
+	}
 	go client.reading()
 	return client
 }
@@ -116,15 +137,11 @@ func (c *Client) reading() {
 	zlog.Tracef("client quit reading: %v", err)
 }
 
-func (c *Client) writeRequest(call *Call) error {
-	return c.codec.WriteRequest(&call.Header, call.Args)
-}
-
 func (c *Client) send(call *Call) (err error) {
 	if _, loaded := c.pending.LoadOrStore(call.Header.Sequence, call); loaded {
 		return fmt.Errorf("sequence(%d) duplicate", call.Header.Sequence)
 	}
-	if err = c.writeRequest(call); err != nil {
+	if err = call.send(c.codec); err != nil {
 		c.pending.Delete(call.Header.Sequence)
 		return err
 	}
@@ -165,6 +182,7 @@ func (c *Client) Go(ctx context.Context, serviceMethod string, args interface{},
 		Args:  args,
 		Reply: reply,
 		Done:  done,
+		trace: c.logger.NewTrace(verbose, traceID, c.name, serviceMethod),
 	}
 	if err := c.send(call); err != nil {
 		return nil, err
