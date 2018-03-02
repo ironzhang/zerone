@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"sync"
 	"sync/atomic"
 
@@ -13,7 +14,6 @@ import (
 	"github.com/ironzhang/zerone/rpc/codec"
 	"github.com/ironzhang/zerone/rpc/codec/json_codec"
 	"github.com/ironzhang/zerone/rpc/codes"
-	"github.com/ironzhang/zerone/rpc/trace"
 	"github.com/ironzhang/zerone/zlog"
 )
 
@@ -29,7 +29,7 @@ type Call struct {
 	Error  error
 	Done   chan *Call
 
-	trace trace.Trace
+	trace trace
 }
 
 func (c *Call) done() {
@@ -57,7 +57,7 @@ func (c *Call) send(codec codec.ClientCodec) error {
 type Client struct {
 	name   string
 	codec  codec.ClientCodec
-	logger *trace.Logger
+	logger traceLogger
 
 	pending   sync.Map
 	sequence  uint64
@@ -65,25 +65,34 @@ type Client struct {
 	available int32
 }
 
-func Dial(network, address string) (*Client, error) {
+func Dial(name, network, address string) (*Client, error) {
 	conn, err := net.Dial(network, address)
 	if err != nil {
 		return nil, err
 	}
-	return NewClient(conn), nil
+	return NewClient(name, conn), nil
 }
 
-func NewClient(rwc io.ReadWriteCloser) *Client {
-	return NewClientWithCodec(json_codec.NewClientCodec(rwc))
+func NewClient(name string, rwc io.ReadWriteCloser) *Client {
+	return NewClientWithCodec(name, json_codec.NewClientCodec(rwc))
 }
 
-func NewClientWithCodec(c codec.ClientCodec) *Client {
+func NewClientWithCodec(name string, c codec.ClientCodec) *Client {
 	client := &Client{
+		name:   name,
 		codec:  c,
-		logger: trace.NewLogger(nil, 0),
+		logger: traceLogger{out: os.Stdout, verbose: 0},
 	}
 	go client.reading()
 	return client
+}
+
+func (c *Client) SetTraceOutput(out io.Writer) {
+	c.logger.SetOutput(out)
+}
+
+func (c *Client) SetTraceVerbose(verbose int) {
+	c.logger.SetVerbose(verbose)
 }
 
 func (c *Client) readResponse() (keepReading bool, err error) {

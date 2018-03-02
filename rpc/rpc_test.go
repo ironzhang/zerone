@@ -53,7 +53,7 @@ func init() {
 }
 
 func TestCallCorrect(t *testing.T) {
-	c, err := rpc.Dial("tcp", "localhost:2000")
+	c, err := rpc.Dial("TestCallCorrect", "tcp", "localhost:2000")
 	if err != nil {
 		t.Fatalf("dial: %v", err)
 	}
@@ -103,7 +103,7 @@ func TestCallCorrect(t *testing.T) {
 }
 
 func TestCallError(t *testing.T) {
-	c, err := rpc.Dial("tcp", "localhost:2000")
+	c, err := rpc.Dial("TestCallError", "tcp", "localhost:2000")
 	if err != nil {
 		t.Fatalf("dial: %v", err)
 	}
@@ -133,7 +133,7 @@ func TestCallError(t *testing.T) {
 }
 
 func TestGo(t *testing.T) {
-	c, err := rpc.Dial("tcp", "localhost:2000")
+	c, err := rpc.Dial("TestGo", "tcp", "localhost:2000")
 	if err != nil {
 		t.Fatalf("dial: %v", err)
 	}
@@ -185,7 +185,7 @@ func TestGo(t *testing.T) {
 }
 
 func BenchmarkOneClientSerialCall(b *testing.B) {
-	c, err := rpc.Dial("tcp", "localhost:2000")
+	c, err := rpc.Dial("BenchmarkOneClientSerialCall", "tcp", "localhost:2000")
 	if err != nil {
 		b.Fatalf("dial: %v", err)
 	}
@@ -206,7 +206,7 @@ func BenchmarkOneClientSerialCall(b *testing.B) {
 }
 
 func BenchmarkOneClientParallelCall(b *testing.B) {
-	c, err := rpc.Dial("tcp", "localhost:2000")
+	c, err := rpc.Dial("BenchmarkOneClientParallelCall", "tcp", "localhost:2000")
 	if err != nil {
 		b.Fatalf("dial: %v", err)
 	}
@@ -233,7 +233,7 @@ func BenchmarkOneClientParallelCall(b *testing.B) {
 func BenchmarkNClientsCall(b *testing.B) {
 	b.SetParallelism(100)
 	b.RunParallel(func(pb *testing.PB) {
-		c, err := rpc.Dial("tcp", "localhost:2000")
+		c, err := rpc.Dial("BenchmarkNClientsCall", "tcp", "localhost:2000")
 		if err != nil {
 			b.Fatalf("dial: %v", err)
 		}

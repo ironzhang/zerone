@@ -219,7 +219,7 @@ func TestClientCall(t *testing.T) {
 			serverCodec.WriteResponse(&resp, tt.result)
 		}
 	}()
-	client := NewClientWithCodec(clientCodec)
+	client := NewClientWithCodec("client", clientCodec)
 	defer client.Close()
 	for _, tt := range tests {
 		if err := client.Call(context.Background(), tt.serviceMethod, tt.args, tt.reply); err != nil {
