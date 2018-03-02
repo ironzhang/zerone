@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"math/rand"
 	"net"
 	"reflect"
@@ -618,6 +619,7 @@ func TestServerServeRequest(t *testing.T) {
 	if err := s.Register(&e); err != nil {
 		t.Fatalf("Register: %v", err)
 	}
+	s.SetTraceOutput(ioutil.Discard)
 
 	tests := []struct {
 		reqHeaderErr error
@@ -653,7 +655,7 @@ func TestServerServeRequest(t *testing.T) {
 					Module: "TestServerServeCall",
 				},
 			},
-			respBody: nil,
+			respBody: emptyResp,
 		},
 		{
 			reqHeader:  codec.RequestHeader{ServiceMethod: "Arith.Add", Sequence: 1},
@@ -669,17 +671,17 @@ func TestServerServeRequest(t *testing.T) {
 					Module: "TestServerServeCall",
 				},
 			},
-			respBody: nil,
+			respBody: emptyResp,
 		},
 	}
-	for _, tt := range tests {
+	for i, tt := range tests {
 		codec := &testServerCodec{reqHeaderErr: tt.reqHeaderErr, reqHeader: tt.reqHeader, reqBodyErr: tt.reqBodyErr, reqBody: tt.reqBody}
 		s.ServeRequest(codec)
 		if got, want := codec.respHeader, tt.respHeader; got != want {
-			t.Fatalf("respHeader: %+v != %+v", got, want)
+			t.Fatalf("case%d: respHeader: %+v != %+v", i, got, want)
 		}
 		if got, want := codec.respBody, tt.respBody; !reflect.DeepEqual(got, want) {
-			t.Fatalf("respBody: %+v != %+v", got, want)
+			t.Fatalf("case%d: respBody: %+v != %+v", i, got, want)
 		}
 	}
 }
@@ -688,6 +690,7 @@ func TestServerServeConn(t *testing.T) {
 	cli, svr := net.Pipe()
 	c := json_codec.NewClientCodec(cli)
 	s := NewServer("TestServerServeConn")
+	s.SetTraceOutput(ioutil.Discard)
 
 	var a Arith
 	var err error

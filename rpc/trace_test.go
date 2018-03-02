@@ -3,7 +3,7 @@ package rpc
 import (
 	"fmt"
 	"io"
-	"os"
+	"io/ioutil"
 	"testing"
 )
 
@@ -17,7 +17,7 @@ type TraceReply struct {
 
 func TestErrorTrace(t *testing.T) {
 	tr := errorTrace{
-		out:           os.Stdout,
+		out:           ioutil.Discard,
 		traceID:       "381ec868-369c-41b3-a61a-a1a1b4141c5a",
 		clientName:    "TestErrorTrace",
 		serviceMethod: "server.method",
@@ -29,7 +29,7 @@ func TestErrorTrace(t *testing.T) {
 
 func TestVerboseTrace(t *testing.T) {
 	tr := verboseTrace{
-		out:           os.Stdout,
+		out:           ioutil.Discard,
 		traceID:       "6af3b859-9003-4760-a24a-fe4ab16013f0",
 		clientName:    "TestVerboseTrace",
 		serviceMethod: "server.method",
@@ -82,8 +82,11 @@ func TestTraceLogger(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		lg := traceLogger{out: os.Stdout, verbose: tt.loggerVerbose}
-		tr := lg.NewTrace(tt.traceVerbose, fmt.Sprintf("%d.%d", tt.loggerVerbose, tt.traceVerbose), "TestTraceLogger", "service.method")
+		lg := traceLogger{
+			out:     ioutil.Discard,
+			verbose: tt.loggerVerbose,
+		}
+		tr := lg.NewTrace("Test", tt.traceVerbose, fmt.Sprintf("%d.%d", tt.loggerVerbose, tt.traceVerbose), "TestTraceLogger", "service.method")
 		tr.PrintRequest(Args{1, 2})
 		tr.PrintResponse(nil, Reply{3})
 		tr.PrintResponse(io.EOF, Reply{3})

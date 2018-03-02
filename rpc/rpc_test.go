@@ -3,6 +3,7 @@ package rpc_test
 import (
 	"context"
 	"errors"
+	"io/ioutil"
 	"net"
 	"reflect"
 	"testing"
@@ -44,6 +45,7 @@ func ServeRPC(network, address string) {
 	if err = svr.Register(new(Arith)); err != nil {
 		panic(err)
 	}
+	svr.SetTraceOutput(ioutil.Discard)
 
 	go svr.Accept(ln)
 }
@@ -107,6 +109,7 @@ func TestCallError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("dial: %v", err)
 	}
+	c.SetTraceOutput(ioutil.Discard)
 	defer c.Close()
 
 	tests := []struct {
@@ -137,6 +140,7 @@ func TestGo(t *testing.T) {
 	if err != nil {
 		t.Fatalf("dial: %v", err)
 	}
+	c.SetTraceOutput(ioutil.Discard)
 	defer c.Close()
 
 	var reply int

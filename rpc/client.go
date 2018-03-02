@@ -191,7 +191,7 @@ func (c *Client) Go(ctx context.Context, serviceMethod string, args interface{},
 		Args:  args,
 		Reply: reply,
 		Done:  done,
-		trace: c.logger.NewTrace(verbose, traceID, c.name, serviceMethod),
+		trace: c.logger.NewTrace("Client", verbose, traceID, c.name, serviceMethod),
 	}
 	if err := c.send(call); err != nil {
 		return nil, err

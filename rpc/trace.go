@@ -16,16 +16,16 @@ type trace interface {
 
 const timeLayout = "2006-01-02 15:04:05.999999 -0700 MST"
 
-func printRequest(w io.Writer, now time.Time, traceID, clientName, serviceMethod string, data []byte) {
-	fmt.Fprintf(w, "%s Request[%s][%s][%s]: %s\n", now.Format(timeLayout), traceID, clientName, serviceMethod, data)
+func printRequest(w io.Writer, now time.Time, prefix, traceID, clientName, serviceMethod string, data []byte) {
+	fmt.Fprintf(w, "%s %s.Request[%s][%s][%s]: %s\n", now.Format(timeLayout), prefix, traceID, clientName, serviceMethod, data)
 }
 
-func printError(w io.Writer, now time.Time, elapse time.Duration, traceID, clientName, serviceMethod string, err error) {
-	fmt.Fprintf(w, "%s Error[%s][%s][%s][%s]: %s\n", now.Format(timeLayout), elapse, traceID, clientName, serviceMethod, err)
+func printError(w io.Writer, now time.Time, elapse time.Duration, prefix, traceID, clientName, serviceMethod string, err error) {
+	fmt.Fprintf(w, "%s %s.Error[%s][%s][%s][%s]: %s\n", now.Format(timeLayout), prefix, elapse, traceID, clientName, serviceMethod, err)
 }
 
-func printResult(w io.Writer, now time.Time, elapse time.Duration, traceID, clientName, serviceMethod string, data []byte) {
-	fmt.Fprintf(w, "%s Result[%s][%s][%s][%s]: %s\n", now.Format(timeLayout), elapse, traceID, clientName, serviceMethod, data)
+func printResult(w io.Writer, now time.Time, elapse time.Duration, prefix, traceID, clientName, serviceMethod string, data []byte) {
+	fmt.Fprintf(w, "%s %s.Result[%s][%s][%s][%s]: %s\n", now.Format(timeLayout), prefix, elapse, traceID, clientName, serviceMethod, data)
 }
 
 type nopTrace struct {
@@ -41,6 +41,7 @@ func (t nopTrace) PrintResponse(err error, body interface{}) error {
 
 type errorTrace struct {
 	out           io.Writer
+	prefix        string
 	traceID       string
 	clientName    string
 	serviceMethod string
@@ -54,7 +55,7 @@ func (t *errorTrace) PrintRequest(body interface{}) error {
 	if err != nil {
 		return err
 	}
-	printRequest(&t.buffer, t.start, t.traceID, t.clientName, t.serviceMethod, data)
+	printRequest(&t.buffer, t.start, t.prefix, t.traceID, t.clientName, t.serviceMethod, data)
 	return nil
 }
 
@@ -62,13 +63,14 @@ func (t *errorTrace) PrintResponse(err error, body interface{}) error {
 	if err != nil {
 		end := time.Now()
 		t.out.Write(t.buffer.Bytes())
-		printError(t.out, end, end.Sub(t.start), t.traceID, t.clientName, t.serviceMethod, err)
+		printError(t.out, end, end.Sub(t.start), t.prefix, t.traceID, t.clientName, t.serviceMethod, err)
 	}
 	return nil
 }
 
 type verboseTrace struct {
 	out           io.Writer
+	prefix        string
 	traceID       string
 	clientName    string
 	serviceMethod string
@@ -81,21 +83,21 @@ func (t *verboseTrace) PrintRequest(body interface{}) error {
 	if err != nil {
 		return err
 	}
-	printRequest(t.out, t.start, t.traceID, t.clientName, t.serviceMethod, data)
+	printRequest(t.out, t.start, t.prefix, t.traceID, t.clientName, t.serviceMethod, data)
 	return nil
 }
 
 func (t *verboseTrace) PrintResponse(err error, body interface{}) error {
 	end := time.Now()
 	if err != nil {
-		printError(t.out, end, end.Sub(t.start), t.traceID, t.clientName, t.serviceMethod, err)
+		printError(t.out, end, end.Sub(t.start), t.prefix, t.traceID, t.clientName, t.serviceMethod, err)
 		return nil
 	}
 	data, err := json.Marshal(body)
 	if err != nil {
 		return err
 	}
-	printResult(t.out, end, end.Sub(t.start), t.traceID, t.clientName, t.serviceMethod, data)
+	printResult(t.out, end, end.Sub(t.start), t.prefix, t.traceID, t.clientName, t.serviceMethod, data)
 	return nil
 }
 
@@ -116,13 +118,14 @@ func (p *traceLogger) SetVerbose(verbose int) {
 	p.verbose = verbose
 }
 
-func (p *traceLogger) NewTrace(verbose int, traceID, clientName, serviceMethod string) trace {
+func (p *traceLogger) NewTrace(prefix string, verbose int, traceID, clientName, serviceMethod string) trace {
 	v := max(p.verbose, verbose)
 	if v < 0 {
 		return nopTrace{}
 	} else if v == 0 {
 		return &errorTrace{
 			out:           p.out,
+			prefix:        prefix,
 			traceID:       traceID,
 			clientName:    clientName,
 			serviceMethod: serviceMethod,
@@ -130,6 +133,7 @@ func (p *traceLogger) NewTrace(verbose int, traceID, clientName, serviceMethod s
 	} else {
 		return &verboseTrace{
 			out:           p.out,
+			prefix:        prefix,
 			traceID:       traceID,
 			clientName:    clientName,
 			serviceMethod: serviceMethod,

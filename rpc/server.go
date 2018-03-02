@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"reflect"
 	"strings"
 	"sync"
@@ -17,11 +18,23 @@ import (
 
 type Server struct {
 	name       string
+	logger     traceLogger
 	serviceMap sync.Map
 }
 
 func NewServer(name string) *Server {
-	return &Server{name: name}
+	return &Server{
+		name:   name,
+		logger: traceLogger{out: os.Stdout, verbose: 0},
+	}
+}
+
+func (s *Server) SetTraceOutput(out io.Writer) {
+	s.logger.SetOutput(out)
+}
+
+func (s *Server) SetTraceVerbose(verbose int) {
+	s.logger.SetVerbose(verbose)
 }
 
 func (s *Server) register(rcvr interface{}, name string) error {
@@ -178,6 +191,54 @@ func (s *Server) call(method reflect.Method, rcvr, args, reply reflect.Value) (e
 	return err
 }
 
+func (s *Server) rpcError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	if e, ok := err.(rpcError); ok {
+		if e.module == "" {
+			e.module = s.name
+		}
+		return e
+	}
+
+	module := s.name
+	if e, ok := err.(ErrorModule); ok {
+		if m := e.Module(); m != "" {
+			module = m
+		}
+	}
+	code := codes.Unknown
+	if e, ok := err.(ErrorCode); ok {
+		code = e.Code()
+	}
+	cause := err.Error()
+	if e, ok := err.(ErrorCause); ok {
+		if ce := e.Cause(); ce != nil {
+			cause = ce.Error()
+		}
+	}
+	return ModuleErrorf(module, code, cause)
+}
+
+var emptyResp = struct{}{}
+
+func (s *Server) serveError(c codec.ServerCodec, req *codec.RequestHeader, err error) {
+	tr := s.logger.NewTrace("Server", req.Verbose, req.TraceID, req.ClientName, req.ServiceMethod)
+	tr.PrintRequest(nil)
+	s.writeResponse(c, req, emptyResp, err)
+	tr.PrintResponse(s.rpcError(err), emptyResp)
+}
+
+func (s *Server) serveCall(c codec.ServerCodec, req *codec.RequestHeader, method reflect.Method, rcvr, args, reply reflect.Value) {
+	tr := s.logger.NewTrace("Server", req.Verbose, req.TraceID, req.ClientName, req.ServiceMethod)
+	tr.PrintRequest(args.Interface())
+	err := s.call(method, rcvr, args, reply)
+	s.writeResponse(c, req, reply.Interface(), err)
+	tr.PrintResponse(s.rpcError(err), reply.Interface())
+}
+
 func (s *Server) ServeRequest(c codec.ServerCodec) error {
 	req, method, rcvr, args, reply, keepReading, err := s.readRequest(c)
 	if err != nil {
@@ -185,20 +246,16 @@ func (s *Server) ServeRequest(c codec.ServerCodec) error {
 			return err
 		}
 		if req != nil {
-			s.writeResponse(c, req, nil, err)
+			s.serveError(c, req, err)
 		}
 		return err
 	}
-	err = s.call(method, rcvr, args, reply)
-	s.writeResponse(c, req, reply.Interface(), err)
+	s.serveCall(c, req, method, rcvr, args, reply)
 	return nil
 }
 
-var emptyResp = struct{}{}
-
 func (s *Server) ServeCodec(c codec.ServerCodec) {
 	defer c.Close()
-
 	for {
 		req, method, rcvr, args, reply, keepReading, err := s.readRequest(c)
 		if err != nil {
@@ -206,15 +263,11 @@ func (s *Server) ServeCodec(c codec.ServerCodec) {
 				break
 			}
 			if req != nil {
-				s.writeResponse(c, req, emptyResp, err)
+				s.serveError(c, req, err)
 			}
 			continue
 		}
-
-		go func() {
-			err = s.call(method, rcvr, args, reply)
-			s.writeResponse(c, req, reply.Interface(), err)
-		}()
+		go s.serveCall(c, req, method, rcvr, args, reply)
 	}
 	zlog.Trace("server quit serve codec")
 }
