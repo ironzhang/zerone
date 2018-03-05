@@ -33,6 +33,10 @@ func (s *Server) SetTraceOutput(out io.Writer) {
 	s.logger.SetOutput(out)
 }
 
+func (s *Server) GetTraceVerbose() int {
+	return s.logger.GetVerbose()
+}
+
 func (s *Server) SetTraceVerbose(verbose int) {
 	s.logger.SetVerbose(verbose)
 }

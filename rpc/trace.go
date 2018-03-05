@@ -114,6 +114,10 @@ func (p *traceLogger) SetOutput(out io.Writer) {
 	}
 }
 
+func (p *traceLogger) GetVerbose() int {
+	return p.verbose
+}
+
 func (p *traceLogger) SetVerbose(verbose int) {
 	p.verbose = verbose
 }

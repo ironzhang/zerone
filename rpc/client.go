@@ -91,6 +91,10 @@ func (c *Client) SetTraceOutput(out io.Writer) {
 	c.logger.SetOutput(out)
 }
 
+func (c *Client) GetTraceVerbose() int {
+	return c.logger.GetVerbose()
+}
+
 func (c *Client) SetTraceVerbose(verbose int) {
 	c.logger.SetVerbose(verbose)
 }
