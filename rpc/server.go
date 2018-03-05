@@ -130,12 +130,16 @@ func (s *Server) readRequest(c codec.ServerCodec) (req *codec.RequestHeader, met
 		args = args.Elem()
 	}
 
-	reply = reflect.New(meth.reply.Elem())
-	switch meth.reply.Elem().Kind() {
-	case reflect.Map:
-		reply.Elem().Set(reflect.MakeMap(meth.reply.Elem()))
-	case reflect.Slice:
-		reply.Elem().Set(reflect.MakeSlice(meth.reply.Elem(), 0, 0))
+	if isNilInterface(meth.reply) {
+		reply = reflect.New(meth.reply)
+	} else {
+		reply = reflect.New(meth.reply.Elem())
+		switch meth.reply.Elem().Kind() {
+		case reflect.Map:
+			reply.Elem().Set(reflect.MakeMap(meth.reply.Elem()))
+		case reflect.Slice:
+			reply.Elem().Set(reflect.MakeSlice(meth.reply.Elem(), 0, 0))
+		}
 	}
 
 	return

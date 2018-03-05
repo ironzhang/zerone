@@ -132,3 +132,7 @@ func parseService(name string, rcvr reflect.Value) (*service, error) {
 	}
 	return &service{name: name, rcvr: rcvr, methods: methods}, nil
 }
+
+func isNilInterface(t reflect.Type) bool {
+	return t == typeOfNilInterface
+}
