@@ -8,6 +8,7 @@ import (
 	"github.com/ironzhang/zerone/zlog"
 
 	"github.com/ironzhang/zerone/examples/rpc/arith"
+	"github.com/ironzhang/zerone/examples/rpc/trace"
 )
 
 type Options struct {
@@ -33,6 +34,9 @@ func main() {
 
 	s := rpc.NewServer("ArithServer")
 	if err := s.Register(arith.Arith(0)); err != nil {
+		zlog.Fatalf("register: %v", err)
+	}
+	if err := s.Register(trace.New(s)); err != nil {
 		zlog.Fatalf("register: %v", err)
 	}
 	zlog.Infof("serve on %s@%s", opts.net, opts.addr)
