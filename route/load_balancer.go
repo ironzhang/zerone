@@ -21,10 +21,10 @@ type LoadBalancer interface {
 }
 
 type RandomBalancer struct {
-	table Table
+	table *Table
 }
 
-func NewRandomBalancer(table Table) *RandomBalancer {
+func NewRandomBalancer(table *Table) *RandomBalancer {
 	return &RandomBalancer{table: table}
 }
 
@@ -37,11 +37,11 @@ func (b *RandomBalancer) GetEndpoint(key []byte) (Endpoint, error) {
 }
 
 type RoundRobinBalancer struct {
-	table Table
+	table *Table
 	index uint32
 }
 
-func NewRoundRobinBalancer(table Table) *RoundRobinBalancer {
+func NewRoundRobinBalancer(table *Table) *RoundRobinBalancer {
 	return &RoundRobinBalancer{table: table, index: 0}
 }
 
@@ -58,11 +58,11 @@ func (b *RoundRobinBalancer) GetEndpoint(key []byte) (Endpoint, error) {
 type Hash func(data []byte) uint32
 
 type HashBalancer struct {
-	table Table
+	table *Table
 	hash  Hash
 }
 
-func NewHashBalancer(table Table, hash Hash) *HashBalancer {
+func NewHashBalancer(table *Table, hash Hash) *HashBalancer {
 	if hash == nil {
 		hash = crc32.ChecksumIEEE
 	}

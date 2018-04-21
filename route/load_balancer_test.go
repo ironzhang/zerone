@@ -5,15 +5,14 @@ import (
 	"testing"
 )
 
-type TestTable struct {
-}
+var TestTB = NewTable()
 
-func (t TestTable) ListEndpoints() []Endpoint {
-	return []Endpoint{
-		{"localhost:2000", 0.1},
-		{"localhost:2001", 0.1},
-		{"localhost:2002", 0.1},
-	}
+func init() {
+	TestTB.AddEndpoints(
+		Endpoint{"0", "localhost:2000", 0.0},
+		Endpoint{"1", "localhost:2001", 0.1},
+		Endpoint{"2", "localhost:2002", 0.2},
+	)
 }
 
 func RunLoadBalancerTests(t *testing.T, b LoadBalancer, name string, n int) {
@@ -28,16 +27,16 @@ func RunLoadBalancerTests(t *testing.T, b LoadBalancer, name string, n int) {
 }
 
 func TestRandomBalancer(t *testing.T) {
-	b := NewRandomBalancer(TestTable{})
+	b := NewRandomBalancer(TestTB)
 	RunLoadBalancerTests(t, b, "RandomBalancer", 10)
 }
 
 func TestRoundRobinBalancer(t *testing.T) {
-	b := NewRoundRobinBalancer(TestTable{})
+	b := NewRoundRobinBalancer(TestTB)
 	RunLoadBalancerTests(t, b, "RoundRobinBalancer", 10)
 }
 
 func TestHashBalancer(t *testing.T) {
-	b := NewHashBalancer(TestTable{}, nil)
+	b := NewHashBalancer(TestTB, nil)
 	RunLoadBalancerTests(t, b, "HashBalancer", 10)
 }
