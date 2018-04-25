@@ -2,9 +2,11 @@ package zerone
 
 import (
 	"context"
+	"sync"
 
 	"github.com/ironzhang/zerone/route"
 	"github.com/ironzhang/zerone/route/balance"
+	"github.com/ironzhang/zerone/rpc"
 )
 
 type LoadBalancer string
@@ -16,15 +18,18 @@ const (
 )
 
 type Client struct {
+	name               string
 	table              route.Table
 	balancer           route.LoadBalancer
 	hashBalancer       *balance.HashBalancer
 	randomBalancer     *balance.RandomBalancer
 	roundRobinBalancer *balance.RoundRobinBalancer
+	clientMap          sync.Map
 }
 
-func NewClient(table route.Table) *Client {
+func NewClient(name string, table route.Table) *Client {
 	c := &Client{
+		name:               name,
 		table:              table,
 		hashBalancer:       balance.NewHashBalancer(table, nil),
 		randomBalancer:     balance.NewRandomBalancer(table),
@@ -36,6 +41,10 @@ func NewClient(table route.Table) *Client {
 
 func (c *Client) Close() error {
 	return nil
+}
+
+func (c *Client) WithFailPolicy(fp FailPolicy) *Client {
+	return &Client{}
 }
 
 func (c *Client) getLoadBalancer(lb LoadBalancer) route.LoadBalancer {
@@ -61,10 +70,32 @@ func (c *Client) WithLoadBalancer(lb LoadBalancer) *Client {
 	}
 }
 
-func (c *Client) WithFailPolicy(fp FailPolicy) *Client {
-	return &Client{}
+func (c *Client) dial(addr string) (*rpc.Client, error) {
+	if value, ok := c.clientMap.Load(addr); ok {
+		return value.(*rpc.Client), nil
+	}
+
+	client, err := rpc.Dial(c.name, "tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+	//client.SetTraceVerbose(1)
+
+	if value, ok := c.clientMap.LoadOrStore(addr, client); ok {
+		client.Close()
+		return value.(*rpc.Client), nil
+	}
+	return client, nil
 }
 
-func (c *Client) Call(ctx context.Context, method string, args, res interface{}) error {
-	return nil
+func (c *Client) Call(ctx context.Context, method string, key []byte, args, res interface{}) error {
+	ep, err := c.balancer.GetEndpoint(key)
+	if err != nil {
+		return err
+	}
+	rc, err := c.dial(ep.Addr)
+	if err != nil {
+		return err
+	}
+	return rc.Call(ctx, method, args, res)
 }
