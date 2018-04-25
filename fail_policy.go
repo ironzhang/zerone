@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ironzhang/zerone/route"
 	"github.com/ironzhang/zerone/rpc"
 )
 
 type FailPolicy interface {
-	Call(c *Client, ctx context.Context, method string, key []byte, args, res interface{}) error
+	gocall(ctx context.Context, cs *clientset, lb route.LoadBalancer, key []byte, method string, args, res interface{}, done chan *rpc.Call) (*rpc.Call, error)
 }
 
 type Failtry struct {
@@ -35,10 +36,11 @@ func NewFailtry(try int, min, max time.Duration) *Failtry {
 	}
 }
 
-func (p *Failtry) Call(c *Client, ctx context.Context, method string, key []byte, args, res interface{}) error {
-	ep, err := c.balancerset.getLoadBalancer(c.balancePolicy).GetEndpoint(key)
+func (p *Failtry) gocall(ctx context.Context, cs *clientset, lb route.LoadBalancer, key []byte,
+	method string, args, res interface{}, done chan *rpc.Call) (*rpc.Call, error) {
+	ep, err := lb.GetEndpoint(key)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	delay := p.min
@@ -51,17 +53,18 @@ func (p *Failtry) Call(c *Client, ctx context.Context, method string, key []byte
 				delay = p.max
 			}
 		}
-		rc, err := c.clientset.add(token, ep.Net, ep.Addr)
+		rc, err := cs.add(token, ep.Net, ep.Addr)
 		if err != nil {
 			continue
 		}
-		if err = rc.Call(ctx, method, args, res); err == rpc.ErrUnavailable {
-			c.clientset.remove(token)
+		call, err := rc.Go(ctx, method, args, res, done)
+		if err == rpc.ErrUnavailable {
+			cs.remove(token)
 			continue
 		}
-		return err
+		return call, err
 	}
-	return rpc.ErrUnavailable
+	return nil, rpc.ErrUnavailable
 }
 
 type Failover struct {
@@ -77,25 +80,26 @@ func NewFailover(try int) *Failover {
 	}
 }
 
-func (p *Failover) Call(c *Client, ctx context.Context, method string, key []byte, args, res interface{}) error {
-	lb := c.balancerset.getLoadBalancer(c.balancePolicy)
+func (p *Failover) Go(ctx context.Context, cs *clientset, lb route.LoadBalancer, key []byte,
+	method string, args, res interface{}, done chan *rpc.Call) (*rpc.Call, error) {
 	for i := 0; i < p.try; i++ {
 		ep, err := lb.GetEndpoint(key)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		token := makeToken(ep.Net, ep.Addr)
-		rc, err := c.clientset.add(token, ep.Net, ep.Addr)
+		rc, err := cs.add(token, ep.Net, ep.Addr)
 		if err != nil {
 			continue
 		}
-		if err = rc.Call(ctx, method, args, res); err == rpc.ErrUnavailable {
-			c.clientset.remove(token)
+		call, err := rc.Go(ctx, method, args, res, done)
+		if err == rpc.ErrUnavailable {
+			cs.remove(token)
 			continue
 		}
-		return err
+		return call, err
 	}
-	return rpc.ErrUnavailable
+	return nil, rpc.ErrUnavailable
 }
 
 func makeToken(net, addr string) string {

@@ -65,9 +65,23 @@ func (c *Client) WithFailPolicy(policy FailPolicy) *Client {
 	return nc
 }
 
-func (c *Client) Call(ctx context.Context, method string, key []byte, args, res interface{}) error {
+func (c *Client) Go(ctx context.Context, key []byte, method string, args, res interface{}, done chan *rpc.Call) (*rpc.Call, error) {
+	if atomic.LoadInt32(&c.shutdown) == 1 {
+		return nil, rpc.ErrShutdown
+	}
+	lb := c.balancerset.getLoadBalancer(c.balancePolicy)
+	return c.failPolicy.gocall(ctx, c.clientset, lb, key, method, args, res, done)
+}
+
+func (c *Client) Call(ctx context.Context, key []byte, method string, args, res interface{}) error {
 	if atomic.LoadInt32(&c.shutdown) == 1 {
 		return rpc.ErrShutdown
 	}
-	return c.failPolicy.Call(c, ctx, method, key, args, res)
+	lb := c.balancerset.getLoadBalancer(c.balancePolicy)
+	call, err := c.failPolicy.gocall(ctx, c.clientset, lb, key, method, args, res, make(chan *rpc.Call, 1))
+	if err != nil {
+		return err
+	}
+	<-call.Done
+	return call.Error
 }
