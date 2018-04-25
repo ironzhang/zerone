@@ -2,7 +2,7 @@ package zerone
 
 import (
 	"context"
-	"sync"
+	"io"
 	"sync/atomic"
 
 	"github.com/ironzhang/zerone/route"
@@ -10,44 +10,43 @@ import (
 	"github.com/ironzhang/zerone/rpc"
 )
 
-type FailPolicy string
-
-const (
-	Failfast FailPolicy = "Failfast"
-	Failover FailPolicy = "Failover"
-	Failtry  FailPolicy = "Failtry"
-)
-
 type LoadBalancer string
 
+// 负载均衡策略定义
 const (
 	HashBalancer       LoadBalancer = "HashBalancer"
 	RandomBalancer     LoadBalancer = "RandomBalancer"
 	RoundRobinBalancer LoadBalancer = "RoundRobinBalancer"
 )
 
+type FailPolicy string
+
+// 失败重试策略定义
+const (
+	Failfast FailPolicy = "Failfast"
+	Failover FailPolicy = "Failover"
+	Failtry  FailPolicy = "Failtry"
+)
+
 type Client struct {
-	name               string
+	shutdown           int32
+	clientset          *clientset
 	table              route.Table
 	balancer           route.LoadBalancer
 	hashBalancer       *balance.HashBalancer
 	randomBalancer     *balance.RandomBalancer
 	roundRobinBalancer *balance.RoundRobinBalancer
-	verbose            int
-	shutdown           int32
 	failPolicy         FailPolicy
-	clientMap          sync.Map
 }
 
 func NewClient(name string, table route.Table) *Client {
 	c := &Client{
-		name:               name,
+		shutdown:           0,
+		clientset:          newClientset(name, nil, 0),
 		table:              table,
 		hashBalancer:       balance.NewHashBalancer(table, nil),
 		randomBalancer:     balance.NewRandomBalancer(table),
 		roundRobinBalancer: balance.NewRoundRobinBalancer(table),
-		verbose:            0,
-		shutdown:           0,
 		failPolicy:         Failfast,
 	}
 	c.balancer = c.randomBalancer
@@ -56,51 +55,42 @@ func NewClient(name string, table route.Table) *Client {
 
 func (c *Client) clone() *Client {
 	return &Client{
-		name:               c.name,
+		shutdown:           c.shutdown,
+		clientset:          c.clientset,
 		table:              c.table,
 		balancer:           c.balancer,
 		hashBalancer:       c.hashBalancer,
 		randomBalancer:     c.randomBalancer,
 		roundRobinBalancer: c.roundRobinBalancer,
-		verbose:            c.verbose,
-		shutdown:           c.shutdown,
 		failPolicy:         c.failPolicy,
 	}
 }
 
 func (c *Client) Close() error {
 	if atomic.CompareAndSwapInt32(&c.shutdown, 0, 1) {
-		return c.close()
+		c.clientset.close()
+		return nil
 	}
 	return rpc.ErrShutdown
 }
 
-func (c *Client) close() error {
-	keys := make([]interface{}, 0)
-	c.clientMap.Range(func(key, value interface{}) bool {
-		keys = append(keys, key)
-		rc := value.(*rpc.Client)
-		rc.Close()
-		return true
-	})
-	for _, key := range keys {
-		c.clientMap.Delete(key)
-	}
-	return nil
+func (c *Client) SetTraceOutput(output io.Writer) {
+	c.clientset.setTraceOutput(output)
 }
 
 func (c *Client) SetTraceVerbose(verbose int) {
-	c.verbose = verbose
-	c.clientMap.Range(func(key, value interface{}) bool {
-		rc := value.(*rpc.Client)
-		rc.SetTraceVerbose(verbose)
-		return true
-	})
+	c.clientset.setTraceVerbose(verbose)
 }
 
 func (c *Client) WithFailPolicy(fp FailPolicy) *Client {
 	nc := c.clone()
 	nc.failPolicy = fp
+	return nc
+}
+
+func (c *Client) WithLoadBalancer(lb LoadBalancer) *Client {
+	nc := c.clone()
+	nc.balancer = nc.getLoadBalancer(lb)
 	return nc
 }
 
@@ -117,35 +107,6 @@ func (c *Client) getLoadBalancer(lb LoadBalancer) route.LoadBalancer {
 	}
 }
 
-func (c *Client) WithLoadBalancer(lb LoadBalancer) *Client {
-	nc := c.clone()
-	nc.balancer = nc.getLoadBalancer(lb)
-	return nc
-}
-
-func (c *Client) dial(addr string) (*rpc.Client, error) {
-	if value, ok := c.clientMap.Load(addr); ok {
-		return value.(*rpc.Client), nil
-	}
-
-	client, err := rpc.Dial(c.name, "tcp", addr)
-	if err != nil {
-		return nil, err
-	}
-	client.SetTraceVerbose(c.verbose)
-
-	if value, ok := c.clientMap.LoadOrStore(addr, client); ok {
-		client.Close()
-		return value.(*rpc.Client), nil
-	}
-	return client, nil
-}
-
-func (c *Client) reclaim(addr string, rc *rpc.Client) {
-	c.clientMap.Delete(addr)
-	rc.Close()
-}
-
 func (c *Client) Call(ctx context.Context, method string, key []byte, args, res interface{}) error {
 	if atomic.LoadInt32(&c.shutdown) == 1 {
 		return rpc.ErrShutdown
@@ -156,12 +117,15 @@ func (c *Client) Call(ctx context.Context, method string, key []byte, args, res 
 		if err != nil {
 			return err
 		}
-		rc, err := c.dial(ep.Addr)
+		net, addr := "tcp", ep.Addr
+		key := net + "://" + addr
+
+		rc, err := c.clientset.add(key, net, addr)
 		if err != nil {
 			continue
 		}
 		if err = rc.Call(ctx, method, args, res); err == rpc.ErrUnavailable {
-			c.reclaim(ep.Addr, rc)
+			c.clientset.remove(key)
 			continue
 		}
 		return err
