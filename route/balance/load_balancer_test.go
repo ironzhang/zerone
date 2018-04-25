@@ -12,9 +12,9 @@ type TestTB struct {
 
 func (TestTB) ListEndpoints() []route.Endpoint {
 	return []route.Endpoint{
-		{"0", "localhost:2000", 0.0},
-		{"1", "localhost:2001", 0.1},
-		{"2", "localhost:2002", 0.2},
+		{"0", "tcp", "localhost:2000", 0.0},
+		{"1", "tcp", "localhost:2001", 0.1},
+		{"2", "tcp", "localhost:2002", 0.2},
 	}
 }
 

@@ -2,6 +2,7 @@ package zerone
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"sync/atomic"
 
@@ -117,10 +118,8 @@ func (c *Client) Call(ctx context.Context, method string, key []byte, args, res 
 		if err != nil {
 			return err
 		}
-		net, addr := "tcp", ep.Addr
-		key := net + "://" + addr
-
-		rc, err := c.clientset.add(key, net, addr)
+		key := fmt.Sprintf("%s://%s", ep.Net, ep.Addr)
+		rc, err := c.clientset.add(key, ep.Net, ep.Addr)
 		if err != nil {
 			continue
 		}

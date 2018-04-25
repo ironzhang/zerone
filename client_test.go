@@ -11,8 +11,8 @@ import (
 
 func TestClient(t *testing.T) {
 	tb := stable.NewTable([]route.Endpoint{
-		{"1", "localhost:10001", 0},
-		{"0", "localhost:10000", 0},
+		{"1", "tcp", "localhost:10001", 0},
+		{"0", "tcp", "localhost:10000", 0},
 	})
 	c := NewClient("test", tb)
 	defer c.Close()

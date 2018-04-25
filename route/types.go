@@ -2,6 +2,7 @@ package route
 
 type Endpoint struct {
 	Name string
+	Net  string
 	Addr string
 	Load float64
 }
