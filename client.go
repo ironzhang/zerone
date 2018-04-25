@@ -2,21 +2,11 @@ package zerone
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"sync/atomic"
 
 	"github.com/ironzhang/zerone/route"
 	"github.com/ironzhang/zerone/rpc"
-)
-
-type FailPolicy string
-
-// 失败重试策略定义
-const (
-	Failfast FailPolicy = "Failfast"
-	Failover FailPolicy = "Failover"
-	Failtry  FailPolicy = "Failtry"
 )
 
 type Client struct {
@@ -33,7 +23,7 @@ func NewClient(name string, table route.Table) *Client {
 		clientset:     newClientset(name, nil, 0),
 		balancerset:   newBalancerset(table),
 		balancePolicy: RandomBalancer,
-		failPolicy:    Failfast,
+		failPolicy:    NewFailtry(0, 0, 0),
 	}
 }
 
@@ -79,38 +69,5 @@ func (c *Client) Call(ctx context.Context, method string, key []byte, args, res 
 	if atomic.LoadInt32(&c.shutdown) == 1 {
 		return rpc.ErrShutdown
 	}
-
-	for i := 0; i < 3; i++ {
-		ep, err := c.balancerset.getLoadBalancer(c.balancePolicy).GetEndpoint(key)
-		if err != nil {
-			return err
-		}
-		key := fmt.Sprintf("%s://%s", ep.Net, ep.Addr)
-		rc, err := c.clientset.add(key, ep.Net, ep.Addr)
-		if err != nil {
-			continue
-		}
-		if err = rc.Call(ctx, method, args, res); err == rpc.ErrUnavailable {
-			c.clientset.remove(key)
-			continue
-		}
-		return err
-	}
-	return rpc.ErrUnavailable
-}
-
-func (c *Client) failfastCall(ctx context.Context, method string, key []byte, args, res interface{}) error {
-	ep, err := c.balancerset.getLoadBalancer(c.balancePolicy).GetEndpoint(key)
-	if err != nil {
-		return err
-	}
-	target := fmt.Sprintf("%s://%s", ep.Net, ep.Addr)
-	rc, err := c.clientset.add(target, ep.Net, ep.Addr)
-	if err != nil {
-		return err
-	}
-	if err = rc.Call(ctx, method, args, res); err == rpc.ErrUnavailable {
-		c.clientset.remove(target)
-	}
-	return err
+	return c.failPolicy.Call(c, ctx, method, key, args, res)
 }
