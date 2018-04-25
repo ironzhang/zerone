@@ -19,6 +19,7 @@ const (
 
 type Client struct {
 	name               string
+	verbose            int
 	table              route.Table
 	balancer           route.LoadBalancer
 	hashBalancer       *balance.HashBalancer
@@ -30,6 +31,7 @@ type Client struct {
 func NewClient(name string, table route.Table) *Client {
 	c := &Client{
 		name:               name,
+		verbose:            0,
 		table:              table,
 		hashBalancer:       balance.NewHashBalancer(table, nil),
 		randomBalancer:     balance.NewRandomBalancer(table),
@@ -41,6 +43,15 @@ func NewClient(name string, table route.Table) *Client {
 
 func (c *Client) Close() error {
 	return nil
+}
+
+func (c *Client) SetTraceVerbose(verbose int) {
+	c.verbose = verbose
+	c.clientMap.Range(func(key, value interface{}) bool {
+		rc := value.(*rpc.Client)
+		rc.SetTraceVerbose(verbose)
+		return true
+	})
 }
 
 func (c *Client) WithFailPolicy(fp FailPolicy) *Client {
@@ -63,6 +74,7 @@ func (c *Client) getLoadBalancer(lb LoadBalancer) route.LoadBalancer {
 func (c *Client) WithLoadBalancer(lb LoadBalancer) *Client {
 	return &Client{
 		table:              c.table,
+		verbose:            c.verbose,
 		balancer:           c.getLoadBalancer(lb),
 		hashBalancer:       c.hashBalancer,
 		randomBalancer:     c.randomBalancer,
@@ -79,7 +91,7 @@ func (c *Client) dial(addr string) (*rpc.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	//client.SetTraceVerbose(1)
+	client.SetTraceVerbose(c.verbose)
 
 	if value, ok := c.clientMap.LoadOrStore(addr, client); ok {
 		client.Close()
