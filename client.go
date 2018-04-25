@@ -3,6 +3,7 @@ package zerone
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 
 	"github.com/ironzhang/zerone/route"
 	"github.com/ironzhang/zerone/route/balance"
@@ -26,6 +27,8 @@ type Client struct {
 	randomBalancer     *balance.RandomBalancer
 	roundRobinBalancer *balance.RoundRobinBalancer
 	clientMap          sync.Map
+
+	shutdown int32
 }
 
 func NewClient(name string, table route.Table) *Client {
@@ -42,6 +45,23 @@ func NewClient(name string, table route.Table) *Client {
 }
 
 func (c *Client) Close() error {
+	if atomic.CompareAndSwapInt32(&c.shutdown, 0, 1) {
+		return c.close()
+	}
+	return rpc.ErrShutdown
+}
+
+func (c *Client) close() error {
+	keys := make([]interface{}, 0)
+	c.clientMap.Range(func(key, value interface{}) bool {
+		keys = append(keys, key)
+		rc := value.(*rpc.Client)
+		rc.Close()
+		return true
+	})
+	for _, key := range keys {
+		c.clientMap.Delete(key)
+	}
 	return nil
 }
 
@@ -100,14 +120,30 @@ func (c *Client) dial(addr string) (*rpc.Client, error) {
 	return client, nil
 }
 
+func (c *Client) reclaim(addr string, rc *rpc.Client) {
+	c.clientMap.Delete(addr)
+	rc.Close()
+}
+
 func (c *Client) Call(ctx context.Context, method string, key []byte, args, res interface{}) error {
-	ep, err := c.balancer.GetEndpoint(key)
-	if err != nil {
+	if atomic.LoadInt32(&c.shutdown) == 1 {
+		return rpc.ErrShutdown
+	}
+
+	for i := 0; i < 3; i++ {
+		ep, err := c.balancer.GetEndpoint(key)
+		if err != nil {
+			return err
+		}
+		rc, err := c.dial(ep.Addr)
+		if err != nil {
+			continue
+		}
+		if err = rc.Call(ctx, method, args, res); err == rpc.ErrUnavailable {
+			c.reclaim(ep.Addr, rc)
+			continue
+		}
 		return err
 	}
-	rc, err := c.dial(ep.Addr)
-	if err != nil {
-		return err
-	}
-	return rc.Call(ctx, method, args, res)
+	return rpc.ErrUnavailable
 }

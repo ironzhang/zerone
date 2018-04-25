@@ -10,9 +10,12 @@ import (
 )
 
 func TestClient(t *testing.T) {
-	tb := stable.NewTable([]route.Endpoint{{"1", "localhost:10000", 0}})
+	tb := stable.NewTable([]route.Endpoint{
+		{"1", "localhost:10001", 0},
+		{"0", "localhost:10000", 0},
+	})
 	c := NewClient("test", tb)
-	//c.SetTraceVerbose(1)
+	defer c.Close()
 
 	res := 0
 	args := arith.Args{1, 2}
