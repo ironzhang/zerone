@@ -131,3 +131,19 @@ func (c *Client) Call(ctx context.Context, method string, key []byte, args, res 
 	}
 	return rpc.ErrUnavailable
 }
+
+func (c *Client) failfastCall(ctx context.Context, method string, key []byte, args, res interface{}) error {
+	ep, err := c.balancer.GetEndpoint(key)
+	if err != nil {
+		return err
+	}
+	target := fmt.Sprintf("%s://%s", ep.Net, ep.Addr)
+	rc, err := c.clientset.add(target, ep.Net, ep.Addr)
+	if err != nil {
+		return err
+	}
+	if err = rc.Call(ctx, method, args, res); err == rpc.ErrUnavailable {
+		c.clientset.remove(target)
+	}
+	return err
+}
