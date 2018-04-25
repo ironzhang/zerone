@@ -63,15 +63,15 @@ func (c *Client) SetTraceVerbose(verbose int) {
 	c.clientset.setTraceVerbose(verbose)
 }
 
-func (c *Client) WithFailPolicy(policy FailPolicy) *Client {
+func (c *Client) WithBalancePolicy(policy BalancePolicy) *Client {
 	nc := c.clone()
-	nc.failPolicy = policy
+	nc.balancePolicy = policy
 	return nc
 }
 
-func (c *Client) WithLoadBalancer(policy BalancePolicy) *Client {
+func (c *Client) WithFailPolicy(policy FailPolicy) *Client {
 	nc := c.clone()
-	nc.balancePolicy = policy
+	nc.failPolicy = policy
 	return nc
 }
 

@@ -19,7 +19,7 @@ func TestClient(t *testing.T) {
 
 	res := 0
 	args := arith.Args{1, 2}
-	err := c.WithLoadBalancer(RoundRobinBalancer).Call(context.Background(), "Arith.Add", nil, args, &res)
+	err := c.WithBalancePolicy(RoundRobinBalancer).Call(context.Background(), "Arith.Add", nil, args, &res)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
