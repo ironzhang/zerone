@@ -10,6 +10,14 @@ import (
 	"github.com/ironzhang/zerone/rpc"
 )
 
+type FailPolicy string
+
+const (
+	Failfast FailPolicy = "Failfast"
+	Failover FailPolicy = "Failover"
+	Failtry  FailPolicy = "Failtry"
+)
+
 type LoadBalancer string
 
 const (
@@ -20,28 +28,44 @@ const (
 
 type Client struct {
 	name               string
-	verbose            int
 	table              route.Table
 	balancer           route.LoadBalancer
 	hashBalancer       *balance.HashBalancer
 	randomBalancer     *balance.RandomBalancer
 	roundRobinBalancer *balance.RoundRobinBalancer
+	verbose            int
+	shutdown           int32
+	failPolicy         FailPolicy
 	clientMap          sync.Map
-
-	shutdown int32
 }
 
 func NewClient(name string, table route.Table) *Client {
 	c := &Client{
 		name:               name,
-		verbose:            0,
 		table:              table,
 		hashBalancer:       balance.NewHashBalancer(table, nil),
 		randomBalancer:     balance.NewRandomBalancer(table),
 		roundRobinBalancer: balance.NewRoundRobinBalancer(table),
+		verbose:            0,
+		shutdown:           0,
+		failPolicy:         Failfast,
 	}
 	c.balancer = c.randomBalancer
 	return c
+}
+
+func (c *Client) clone() *Client {
+	return &Client{
+		name:               c.name,
+		table:              c.table,
+		balancer:           c.balancer,
+		hashBalancer:       c.hashBalancer,
+		randomBalancer:     c.randomBalancer,
+		roundRobinBalancer: c.roundRobinBalancer,
+		verbose:            c.verbose,
+		shutdown:           c.shutdown,
+		failPolicy:         c.failPolicy,
+	}
 }
 
 func (c *Client) Close() error {
@@ -75,7 +99,9 @@ func (c *Client) SetTraceVerbose(verbose int) {
 }
 
 func (c *Client) WithFailPolicy(fp FailPolicy) *Client {
-	return &Client{}
+	nc := c.clone()
+	nc.failPolicy = fp
+	return nc
 }
 
 func (c *Client) getLoadBalancer(lb LoadBalancer) route.LoadBalancer {
@@ -92,14 +118,9 @@ func (c *Client) getLoadBalancer(lb LoadBalancer) route.LoadBalancer {
 }
 
 func (c *Client) WithLoadBalancer(lb LoadBalancer) *Client {
-	return &Client{
-		table:              c.table,
-		verbose:            c.verbose,
-		balancer:           c.getLoadBalancer(lb),
-		hashBalancer:       c.hashBalancer,
-		randomBalancer:     c.randomBalancer,
-		roundRobinBalancer: c.roundRobinBalancer,
-	}
+	nc := c.clone()
+	nc.balancer = nc.getLoadBalancer(lb)
+	return nc
 }
 
 func (c *Client) dial(addr string) (*rpc.Client, error) {
