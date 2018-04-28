@@ -55,36 +55,51 @@ func (p *clientset) setTraceVerbose(verbose int) {
 }
 
 func (p *clientset) dial(key, net, addr string) (*rpc.Client, error) {
-	p.mu.RLock()
-	c, ok := p.clients[key]
-	p.mu.RUnlock()
-	if ok {
+	if c, ok := p.loadClient(key); ok {
 		if c.IsShutdown() {
 			return nil, rpc.ErrShutdown
 		} else if c.IsAvailable() {
 			return c, nil
 		} else {
-			p.mu.Lock()
-			delete(p.clients, key)
-			p.mu.Unlock()
+			p.deleteClient(key)
 			c.Close()
 		}
 	}
 
-	nc, err := rpc.Dial(p.name, net, addr)
+	c, err := rpc.Dial(p.name, net, addr)
 	if err != nil {
 		return nil, err
 	}
-	nc.SetTraceOutput(p.output)
-	nc.SetTraceVerbose(p.verbose)
+	c.SetTraceOutput(p.output)
+	c.SetTraceVerbose(p.verbose)
 
-	p.mu.Lock()
-	if c, ok = p.clients[key]; ok {
-		nc.Close()
-		nc = c
-	} else {
-		p.clients[key] = nc
+	actual, loaded := p.loadOrStoreClient(key, c)
+	if loaded {
+		c.Close()
 	}
+	return actual, nil
+}
+
+func (p *clientset) loadClient(key string) (*rpc.Client, bool) {
+	p.mu.RLock()
+	c, ok := p.clients[key]
+	p.mu.RUnlock()
+	return c, ok
+}
+
+func (p *clientset) loadOrStoreClient(key string, c *rpc.Client) (actual *rpc.Client, loaded bool) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if oc, ok := p.clients[key]; ok {
+		return oc, true
+	}
+	p.clients[key] = c
+	return c, false
+}
+
+func (p *clientset) deleteClient(key string) {
+	p.mu.Lock()
+	delete(p.clients, key)
 	p.mu.Unlock()
-	return nc, nil
 }
