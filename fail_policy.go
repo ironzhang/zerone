@@ -53,13 +53,16 @@ func (p *Failtry) gocall(ctx context.Context, cs *clientset, lb route.LoadBalanc
 				delay = p.max
 			}
 		}
-		rc, err := cs.add(token, ep.Net, ep.Addr)
-		if err != nil {
+		rc, err := cs.dial(token, ep.Net, ep.Addr)
+		if err == rpc.ErrShutdown {
+			return nil, err
+		} else if err != nil {
 			continue
 		}
 		call, err := rc.Go(ctx, method, args, res, done)
-		if err == rpc.ErrUnavailable {
-			cs.remove(token)
+		if err == rpc.ErrShutdown {
+			return nil, err
+		} else if err != nil {
 			continue
 		}
 		return call, err
@@ -88,13 +91,16 @@ func (p *Failover) Go(ctx context.Context, cs *clientset, lb route.LoadBalancer,
 			return nil, err
 		}
 		token := makeToken(ep.Net, ep.Addr)
-		rc, err := cs.add(token, ep.Net, ep.Addr)
-		if err != nil {
+		rc, err := cs.dial(token, ep.Net, ep.Addr)
+		if err == rpc.ErrShutdown {
+			return nil, err
+		} else if err != nil {
 			continue
 		}
 		call, err := rc.Go(ctx, method, args, res, done)
-		if err == rpc.ErrUnavailable {
-			cs.remove(token)
+		if err == rpc.ErrShutdown {
+			return nil, err
+		} else if err != nil {
 			continue
 		}
 		return call, err

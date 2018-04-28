@@ -59,10 +59,10 @@ type Client struct {
 	codec  codec.ClientCodec
 	logger traceLogger
 
-	pending   sync.Map
-	sequence  uint64
-	shutdown  int32
-	available int32
+	pending     sync.Map
+	sequence    uint64
+	shutdown    int32
+	unavailable int32
 }
 
 func Dial(name, network, address string) (*Client, error) {
@@ -97,6 +97,14 @@ func (c *Client) GetTraceVerbose() int {
 
 func (c *Client) SetTraceVerbose(verbose int) {
 	c.logger.SetVerbose(verbose)
+}
+
+func (c *Client) IsShutdown() bool {
+	return atomic.LoadInt32(&c.shutdown) == 1
+}
+
+func (c *Client) IsAvailable() bool {
+	return atomic.LoadInt32(&c.unavailable) == 0
 }
 
 func (c *Client) readResponse() (keepReading bool, err error) {
@@ -134,7 +142,7 @@ func (c *Client) reading() {
 		}
 	}
 
-	atomic.StoreInt32(&c.available, 1)
+	atomic.StoreInt32(&c.unavailable, 1)
 	if atomic.LoadInt32(&c.shutdown) == 1 {
 		err = ErrShutdown
 	} else {
@@ -162,10 +170,10 @@ func (c *Client) send(call *Call) (err error) {
 }
 
 func (c *Client) Go(ctx context.Context, serviceMethod string, args interface{}, reply interface{}, done chan *Call) (*Call, error) {
-	if atomic.LoadInt32(&c.shutdown) == 1 {
+	if c.IsShutdown() {
 		return nil, ErrShutdown
 	}
-	if atomic.LoadInt32(&c.available) == 1 {
+	if !c.IsAvailable() {
 		return nil, ErrUnavailable
 	}
 

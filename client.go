@@ -85,3 +85,7 @@ func (c *Client) Call(ctx context.Context, key []byte, method string, args, res 
 	<-call.Done
 	return call.Error
 }
+
+func (c *Client) Broadcast(ctx context.Context, method string, args, res interface{}) (chan *rpc.Call, error) {
+	return nil, nil
+}
