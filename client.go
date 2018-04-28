@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -106,16 +107,72 @@ func (c *Client) Call(ctx context.Context, key []byte, method string, args, res 
 	}
 }
 
-func (c *Client) Broadcast(ctx context.Context, method string, args, res interface{}) chan *rpc.Call {
-	//	eps := c.table.ListEndpoints()
-	//	done := make(*rpc.Call, len(eps))
-	//	for _, ep := range eps {
-	//		rc, err := c.clientset.dial(fmt.Sprintf("%s://%s", net, addr), net, addr)
-	//		if err != nil {
-	//			continue
-	//		}
-	//		rc.Go(ctx, method, args, res, done)
-	//	}
-	//	return done
-	return nil
+type Result struct {
+	Endpoint route.Endpoint
+	Error    error
+	Method   string
+	Args     interface{}
+	Reply    interface{}
+}
+
+func (c *Client) Broadcast(ctx context.Context, method string, args, res interface{}, timeout time.Duration) <-chan Result {
+	var wg sync.WaitGroup
+	eps := c.table.ListEndpoints()
+	ch := make(chan Result, len(eps))
+	for _, ep := range eps {
+		rc, err := c.clientset.dial(fmt.Sprintf("%s://%s", ep.Net, ep.Addr), ep.Net, ep.Addr)
+		if err != nil {
+			ch <- Result{
+				Endpoint: ep,
+				Error:    err,
+				Method:   method,
+				Args:     args,
+			}
+			continue
+		}
+		call, err := rc.Go(ctx, method, args, newValue(res), make(chan *rpc.Call, 1))
+		if err != nil {
+			ch <- Result{
+				Endpoint: ep,
+				Error:    err,
+				Method:   method,
+				Args:     args,
+			}
+			continue
+		}
+
+		wg.Add(1)
+		go func(ep route.Endpoint, call *rpc.Call) {
+			defer wg.Done()
+			var tc <-chan time.Time
+			if timeout > 0 {
+				t := time.NewTimer(timeout)
+				defer t.Stop()
+				tc = t.C
+			}
+			select {
+			case <-call.Done:
+				ch <- Result{
+					Endpoint: ep,
+					Error:    call.Error,
+					Method:   method,
+					Args:     args,
+					Reply:    call.Reply,
+				}
+
+			case <-tc:
+				ch <- Result{
+					Endpoint: ep,
+					Error:    rpc.ErrTimeout,
+					Method:   method,
+					Args:     args,
+				}
+			}
+		}(ep, call)
+	}
+	go func() {
+		wg.Wait()
+		close(ch)
+	}()
+	return ch
 }

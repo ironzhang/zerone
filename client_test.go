@@ -19,7 +19,7 @@ func TestClient(t *testing.T) {
 
 	res := 0
 	args := arith.Args{1, 2}
-	err := c.Call(context.Background(), nil, "Arith.Add", args, &res)
+	err := c.Call(context.Background(), nil, "Arith.Add", args, &res, 0)
 	if err != nil {
 		t.Fatalf("call: %v", err)
 	}
