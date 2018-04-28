@@ -1,8 +1,6 @@
 package zerone
 
 import (
-	"context"
-	"fmt"
 	"time"
 
 	"github.com/ironzhang/zerone/route"
@@ -10,7 +8,7 @@ import (
 )
 
 type FailPolicy interface {
-	gocall(ctx context.Context, cs *clientset, lb route.LoadBalancer, key []byte, method string, args, res interface{}, done chan *rpc.Call) (*rpc.Call, error)
+	execute(lb route.LoadBalancer, key []byte, do func(net, addr string) (*rpc.Call, error)) (*rpc.Call, error)
 }
 
 type Failtry struct {
@@ -36,15 +34,13 @@ func NewFailtry(try int, min, max time.Duration) *Failtry {
 	}
 }
 
-func (p *Failtry) gocall(ctx context.Context, cs *clientset, lb route.LoadBalancer, key []byte,
-	method string, args, res interface{}, done chan *rpc.Call) (*rpc.Call, error) {
+func (p *Failtry) execute(lb route.LoadBalancer, key []byte, do func(net, addr string) (*rpc.Call, error)) (*rpc.Call, error) {
 	ep, err := lb.GetEndpoint(key)
 	if err != nil {
 		return nil, err
 	}
 
 	delay := p.min
-	token := makeToken(ep.Net, ep.Addr)
 	for i := 0; i < p.try; i++ {
 		if i > 0 {
 			time.Sleep(delay)
@@ -53,19 +49,13 @@ func (p *Failtry) gocall(ctx context.Context, cs *clientset, lb route.LoadBalanc
 				delay = p.max
 			}
 		}
-		rc, err := cs.dial(token, ep.Net, ep.Addr)
-		if err == rpc.ErrShutdown {
+		if call, err := do(ep.Net, ep.Addr); err == rpc.ErrShutdown {
 			return nil, err
 		} else if err != nil {
 			continue
+		} else {
+			return call, err
 		}
-		call, err := rc.Go(ctx, method, args, res, done)
-		if err == rpc.ErrShutdown {
-			return nil, err
-		} else if err != nil {
-			continue
-		}
-		return call, err
 	}
 	return nil, rpc.ErrUnavailable
 }
@@ -83,31 +73,19 @@ func NewFailover(try int) *Failover {
 	}
 }
 
-func (p *Failover) Go(ctx context.Context, cs *clientset, lb route.LoadBalancer, key []byte,
-	method string, args, res interface{}, done chan *rpc.Call) (*rpc.Call, error) {
+func (p *Failover) execute(lb route.LoadBalancer, key []byte, do func(net, addr string) (*rpc.Call, error)) (*rpc.Call, error) {
 	for i := 0; i < p.try; i++ {
 		ep, err := lb.GetEndpoint(key)
 		if err != nil {
 			return nil, err
 		}
-		token := makeToken(ep.Net, ep.Addr)
-		rc, err := cs.dial(token, ep.Net, ep.Addr)
-		if err == rpc.ErrShutdown {
+		if call, err := do(ep.Net, ep.Addr); err == rpc.ErrShutdown {
 			return nil, err
 		} else if err != nil {
 			continue
+		} else {
+			return call, err
 		}
-		call, err := rc.Go(ctx, method, args, res, done)
-		if err == rpc.ErrShutdown {
-			return nil, err
-		} else if err != nil {
-			continue
-		}
-		return call, err
 	}
 	return nil, rpc.ErrUnavailable
-}
-
-func makeToken(net, addr string) string {
-	return fmt.Sprintf("%s://%s", net, addr)
 }

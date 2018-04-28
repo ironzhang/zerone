@@ -2,6 +2,7 @@ package zerone
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"sync/atomic"
 
@@ -69,16 +70,19 @@ func (c *Client) Go(ctx context.Context, key []byte, method string, args, res in
 	if atomic.LoadInt32(&c.shutdown) == 1 {
 		return nil, rpc.ErrShutdown
 	}
+
 	lb := c.balancerset.getLoadBalancer(c.balancePolicy)
-	return c.failPolicy.gocall(ctx, c.clientset, lb, key, method, args, res, done)
+	return c.failPolicy.execute(lb, key, func(net, addr string) (*rpc.Call, error) {
+		rc, err := c.clientset.dial(fmt.Sprintf("%s://%s", net, addr), net, addr)
+		if err != nil {
+			return nil, err
+		}
+		return rc.Go(ctx, method, args, res, done)
+	})
 }
 
 func (c *Client) Call(ctx context.Context, key []byte, method string, args, res interface{}) error {
-	if atomic.LoadInt32(&c.shutdown) == 1 {
-		return rpc.ErrShutdown
-	}
-	lb := c.balancerset.getLoadBalancer(c.balancePolicy)
-	call, err := c.failPolicy.gocall(ctx, c.clientset, lb, key, method, args, res, make(chan *rpc.Call, 1))
+	call, err := c.Go(ctx, key, method, args, res, make(chan *rpc.Call, 1))
 	if err != nil {
 		return err
 	}
