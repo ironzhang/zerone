@@ -75,3 +75,24 @@ func (b *HashBalancer) GetEndpoint(key []byte) (route.Endpoint, error) {
 	}
 	return route.Endpoint{}, ErrNoEndpoint
 }
+
+var _ route.LoadBalancer = &NodeBalancer{}
+
+type NodeBalancer struct {
+	table route.Table
+}
+
+func NewNodeBalancer(table route.Table) *NodeBalancer {
+	return &NodeBalancer{table: table}
+}
+
+func (b *NodeBalancer) GetEndpoint(key []byte) (route.Endpoint, error) {
+	name := string(key)
+	eps := b.table.ListEndpoints()
+	for _, ep := range eps {
+		if ep.Name == name {
+			return ep, nil
+		}
+	}
+	return route.Endpoint{}, ErrNoEndpoint
+}

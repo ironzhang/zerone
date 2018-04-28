@@ -19,7 +19,7 @@ func (TestTB) ListEndpoints() []route.Endpoint {
 }
 
 func RunLoadBalancerTests(t *testing.T, b route.LoadBalancer, name string, n int) {
-	for i := 0; i < 10; i++ {
+	for i := 0; i < n; i++ {
 		ep, err := b.GetEndpoint([]byte(strconv.Itoa(i)))
 		if err != nil {
 			t.Errorf("%s: GetEndpoint: %v", name, err)
@@ -42,4 +42,9 @@ func TestRoundRobinBalancer(t *testing.T) {
 func TestHashBalancer(t *testing.T) {
 	b := NewHashBalancer(TestTB{}, nil)
 	RunLoadBalancerTests(t, b, "HashBalancer", 10)
+}
+
+func TestNodeBalancer(t *testing.T) {
+	b := NewNodeBalancer(TestTB{})
+	RunLoadBalancerTests(t, b, "NodeBalancer", 3)
 }
