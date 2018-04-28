@@ -95,7 +95,7 @@ func TestCallCorrect(t *testing.T) {
 		},
 	}
 	for i, tt := range tests {
-		if err := c.Call(context.Background(), tt.serviceMethod, tt.args, tt.reply); err != nil {
+		if err := c.Call(context.Background(), tt.serviceMethod, tt.args, tt.reply, 0); err != nil {
 			t.Fatalf("case%d: call: %v", i, err)
 		}
 		if got, want := tt.reply, tt.result; !reflect.DeepEqual(got, want) {
@@ -129,7 +129,7 @@ func TestCallError(t *testing.T) {
 		},
 	}
 	for i, tt := range tests {
-		if err := c.Call(context.Background(), tt.serviceMethod, tt.args, tt.reply); err != nil {
+		if err := c.Call(context.Background(), tt.serviceMethod, tt.args, tt.reply, 0); err != nil {
 			t.Logf("case%d: call: %v", i, err)
 		}
 	}
@@ -200,7 +200,7 @@ func BenchmarkOneClientSerialCall(b *testing.B) {
 	var result = args.A * args.B
 	var ctx = context.Background()
 	for i := 0; i < b.N; i++ {
-		if err = c.Call(ctx, "Arith.Multiply", &args, &reply); err != nil {
+		if err = c.Call(ctx, "Arith.Multiply", &args, &reply, 0); err != nil {
 			b.Errorf("Call Arith.Multiply: %v", err)
 		}
 		if reply != result {
@@ -224,7 +224,7 @@ func BenchmarkOneClientParallelCall(b *testing.B) {
 		var result = args.A * args.B
 		var ctx = context.Background()
 		for pb.Next() {
-			if err = c.Call(ctx, "Arith.Multiply", &args, &reply); err != nil {
+			if err = c.Call(ctx, "Arith.Multiply", &args, &reply, 0); err != nil {
 				b.Errorf("Call Arith.Multiply: %v", err)
 			}
 			if reply != result {
@@ -248,7 +248,7 @@ func BenchmarkNClientsCall(b *testing.B) {
 		var result = args.A * args.B
 		var ctx = context.Background()
 		for pb.Next() {
-			if err = c.Call(ctx, "Arith.Multiply", &args, &reply); err != nil {
+			if err = c.Call(ctx, "Arith.Multiply", &args, &reply, 0); err != nil {
 				b.Errorf("Call Arith.Multiply: %v", err)
 			}
 			if reply != result {

@@ -5,13 +5,15 @@ import (
 	"fmt"
 	"io"
 	"sync/atomic"
+	"time"
 
 	"github.com/ironzhang/zerone/route"
 	"github.com/ironzhang/zerone/rpc"
 )
 
 type Client struct {
-	shutdown      int32
+	shutdown      *int32
+	table         route.Table
 	clientset     *clientset
 	balancerset   *balancerset
 	balancePolicy BalancePolicy
@@ -19,8 +21,10 @@ type Client struct {
 }
 
 func NewClient(name string, table route.Table) *Client {
+	var shutdown int32
 	return &Client{
-		shutdown:      0,
+		shutdown:      &shutdown,
+		table:         table,
 		clientset:     newClientset(name, nil, 0),
 		balancerset:   newBalancerset(table),
 		balancePolicy: RandomBalancer,
@@ -31,6 +35,7 @@ func NewClient(name string, table route.Table) *Client {
 func (c *Client) clone() *Client {
 	return &Client{
 		shutdown:      c.shutdown,
+		table:         c.table,
 		clientset:     c.clientset,
 		balancerset:   c.balancerset,
 		balancePolicy: c.balancePolicy,
@@ -39,7 +44,7 @@ func (c *Client) clone() *Client {
 }
 
 func (c *Client) Close() error {
-	if atomic.CompareAndSwapInt32(&c.shutdown, 0, 1) {
+	if atomic.CompareAndSwapInt32(c.shutdown, 0, 1) {
 		c.clientset.close()
 		return nil
 	}
@@ -67,7 +72,7 @@ func (c *Client) WithFailPolicy(policy FailPolicy) *Client {
 }
 
 func (c *Client) Go(ctx context.Context, key []byte, method string, args, res interface{}, done chan *rpc.Call) (*rpc.Call, error) {
-	if atomic.LoadInt32(&c.shutdown) == 1 {
+	if atomic.LoadInt32(c.shutdown) == 1 {
 		return nil, rpc.ErrShutdown
 	}
 
@@ -81,15 +86,36 @@ func (c *Client) Go(ctx context.Context, key []byte, method string, args, res in
 	})
 }
 
-func (c *Client) Call(ctx context.Context, key []byte, method string, args, res interface{}) error {
+func (c *Client) Call(ctx context.Context, key []byte, method string, args, res interface{}, timeout time.Duration) error {
 	call, err := c.Go(ctx, key, method, args, res, make(chan *rpc.Call, 1))
 	if err != nil {
 		return err
 	}
-	<-call.Done
-	return call.Error
+
+	var tc <-chan time.Time
+	if timeout > 0 {
+		t := time.NewTimer(timeout)
+		defer t.Stop()
+		tc = t.C
+	}
+	select {
+	case <-call.Done:
+		return call.Error
+	case <-tc:
+		return rpc.ErrTimeout
+	}
 }
 
-func (c *Client) Broadcast(ctx context.Context, method string, args, res interface{}) (chan *rpc.Call, error) {
-	return nil, nil
+func (c *Client) Broadcast(ctx context.Context, method string, args, res interface{}) chan *rpc.Call {
+	//	eps := c.table.ListEndpoints()
+	//	done := make(*rpc.Call, len(eps))
+	//	for _, ep := range eps {
+	//		rc, err := c.clientset.dial(fmt.Sprintf("%s://%s", net, addr), net, addr)
+	//		if err != nil {
+	//			continue
+	//		}
+	//		rc.Go(ctx, method, args, res, done)
+	//	}
+	//	return done
+	return nil
 }

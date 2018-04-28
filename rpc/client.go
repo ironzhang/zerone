@@ -9,6 +9,7 @@ import (
 	"os"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/ironzhang/pearls/uuid"
 	"github.com/ironzhang/zerone/rpc/codec"
@@ -18,6 +19,7 @@ import (
 )
 
 var (
+	ErrTimeout     = errors.New("call timeout")
 	ErrShutdown    = errors.New("connection is shutdown")
 	ErrUnavailable = errors.New("connection is unavailable")
 )
@@ -211,13 +213,24 @@ func (c *Client) Go(ctx context.Context, serviceMethod string, args interface{},
 	return call, nil
 }
 
-func (c *Client) Call(ctx context.Context, serviceMethod string, args interface{}, reply interface{}) error {
+func (c *Client) Call(ctx context.Context, serviceMethod string, args interface{}, reply interface{}, timeout time.Duration) error {
 	call, err := c.Go(ctx, serviceMethod, args, reply, make(chan *Call, 1))
 	if err != nil {
 		return err
 	}
-	<-call.Done
-	return call.Error
+
+	var tc <-chan time.Time
+	if timeout > 0 {
+		t := time.NewTimer(timeout)
+		defer t.Stop()
+		tc = t.C
+	}
+	select {
+	case <-call.Done:
+		return call.Error
+	case <-tc:
+		return ErrTimeout
+	}
 }
 
 func (c *Client) Close() error {

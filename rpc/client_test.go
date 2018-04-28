@@ -222,7 +222,7 @@ func TestClientCall(t *testing.T) {
 	client := NewClientWithCodec("client", clientCodec)
 	defer client.Close()
 	for _, tt := range tests {
-		if err := client.Call(context.Background(), tt.serviceMethod, tt.args, tt.reply); err != nil {
+		if err := client.Call(context.Background(), tt.serviceMethod, tt.args, tt.reply, 0); err != nil {
 			t.Fatalf("call %q: %v", tt.serviceMethod, err)
 		}
 		if got, want := tt.reply, tt.result; !reflect.DeepEqual(got, want) {
