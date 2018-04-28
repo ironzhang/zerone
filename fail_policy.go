@@ -7,6 +7,8 @@ import (
 	"github.com/ironzhang/zerone/rpc"
 )
 
+var timeSleep = time.Sleep
+
 type FailPolicy interface {
 	execute(lb route.LoadBalancer, key []byte, do func(net, addr string) (*rpc.Call, error)) (*rpc.Call, error)
 }
@@ -27,6 +29,9 @@ func NewFailtry(try int, min, max time.Duration) *Failtry {
 	if max <= 0 {
 		max = time.Second
 	}
+	if min > max {
+		min = max
+	}
 	return &Failtry{
 		try: try,
 		min: min,
@@ -43,7 +48,7 @@ func (p *Failtry) execute(lb route.LoadBalancer, key []byte, do func(net, addr s
 	delay := p.min
 	for i := 0; i < p.try; i++ {
 		if i > 0 {
-			time.Sleep(delay)
+			timeSleep(delay)
 			delay *= 2
 			if delay > p.max {
 				delay = p.max
