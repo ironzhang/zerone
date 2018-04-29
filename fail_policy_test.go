@@ -1,7 +1,9 @@
 package zerone
 
 import (
+	"fmt"
 	"io"
+	"reflect"
 	"testing"
 	"time"
 
@@ -14,12 +16,13 @@ import (
 func TestFailtry(t *testing.T) {
 	tb := stable.NewTable([]route.Endpoint{
 		{"0", "tcp", "localhost:10000", 0},
+		{"1", "tcp", "localhost:10001", 0},
 	})
-	lb := balance.NewRandomBalancer(tb)
 
 	var (
 		sleep time.Duration
 		docnt int
+		addrs []string
 	)
 	timeSleep = func(d time.Duration) { sleep += d }
 
@@ -30,6 +33,7 @@ func TestFailtry(t *testing.T) {
 		err   error
 		docnt int
 		sleep time.Duration
+		addrs []string
 	}{
 		{
 			try:   0,
@@ -38,6 +42,9 @@ func TestFailtry(t *testing.T) {
 			err:   nil,
 			sleep: 0,
 			docnt: 1,
+			addrs: []string{
+				"tcp://localhost:10000",
+			},
 		},
 		{
 			try:   0,
@@ -46,6 +53,9 @@ func TestFailtry(t *testing.T) {
 			err:   io.EOF,
 			sleep: 0,
 			docnt: 1,
+			addrs: []string{
+				"tcp://localhost:10000",
+			},
 		},
 		{
 			try:   2,
@@ -54,6 +64,10 @@ func TestFailtry(t *testing.T) {
 			err:   io.EOF,
 			sleep: time.Second,
 			docnt: 2,
+			addrs: []string{
+				"tcp://localhost:10000",
+				"tcp://localhost:10000",
+			},
 		},
 		{
 			try:   3,
@@ -62,6 +76,11 @@ func TestFailtry(t *testing.T) {
 			err:   io.EOF,
 			sleep: 2 * time.Second,
 			docnt: 3,
+			addrs: []string{
+				"tcp://localhost:10000",
+				"tcp://localhost:10000",
+				"tcp://localhost:10000",
+			},
 		},
 		{
 			try:   3,
@@ -70,6 +89,11 @@ func TestFailtry(t *testing.T) {
 			err:   io.EOF,
 			sleep: 3 * time.Second,
 			docnt: 3,
+			addrs: []string{
+				"tcp://localhost:10000",
+				"tcp://localhost:10000",
+				"tcp://localhost:10000",
+			},
 		},
 		{
 			try:   3,
@@ -78,6 +102,11 @@ func TestFailtry(t *testing.T) {
 			err:   io.EOF,
 			sleep: 2 * time.Second,
 			docnt: 3,
+			addrs: []string{
+				"tcp://localhost:10000",
+				"tcp://localhost:10000",
+				"tcp://localhost:10000",
+			},
 		},
 		{
 			try:   3,
@@ -86,6 +115,11 @@ func TestFailtry(t *testing.T) {
 			err:   io.EOF,
 			sleep: 6 * time.Second,
 			docnt: 3,
+			addrs: []string{
+				"tcp://localhost:10000",
+				"tcp://localhost:10000",
+				"tcp://localhost:10000",
+			},
 		},
 		{
 			try:   3,
@@ -94,16 +128,24 @@ func TestFailtry(t *testing.T) {
 			err:   io.EOF,
 			sleep: 4 * time.Second,
 			docnt: 3,
+			addrs: []string{
+				"tcp://localhost:10000",
+				"tcp://localhost:10000",
+				"tcp://localhost:10000",
+			},
 		},
 	}
 	for i, tt := range tests {
 		sleep = 0
 		docnt = 0
+		addrs = nil
 		do := func(net, addr string) (*rpc.Call, error) {
 			docnt++
+			addrs = append(addrs, fmt.Sprintf("%s://%s", net, addr))
 			return nil, tt.err
 		}
 
+		lb := balance.NewRoundRobinBalancer(tb)
 		f := NewFailtry(tt.try, tt.min, tt.max)
 		f.execute(lb, nil, do)
 
@@ -112,6 +154,9 @@ func TestFailtry(t *testing.T) {
 		}
 		if got, want := sleep, tt.sleep; got != want {
 			t.Errorf("%d: sleep: %v != %v", i, got, want)
+		}
+		if got, want := addrs, tt.addrs; !reflect.DeepEqual(got, want) {
+			t.Errorf("%d: addrs: %v != %v", i, got, want)
 		}
 	}
 }
