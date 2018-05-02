@@ -70,7 +70,7 @@ func TestClientBroadcast(t *testing.T) {
 	defer c.Close()
 
 	var reply int
-	ch := c.Broadcast(context.Background(), "Echo.Inc", "", reply, 0)
+	ch := c.Broadcast(context.Background(), "Echo.Inc", nil, reply, 0)
 	for res := range ch {
 		if res.Error != nil {
 			t.Errorf("call %v error: %v", res.Endpoint, res.Error)
