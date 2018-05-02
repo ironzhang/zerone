@@ -3,8 +3,26 @@ package zerone
 import (
 	"fmt"
 	"math/rand"
+	"net"
 	"testing"
 )
+
+func ServeConnector(network, address string) {
+	ln, err := net.Listen(network, address)
+	if err != nil {
+		panic(err)
+	}
+
+	go func() {
+		for {
+			ln.Accept()
+		}
+	}()
+}
+
+func init() {
+	ServeConnector("tcp", ":3000")
+}
 
 func TestConnectorDial(t *testing.T) {
 	c := newConnector("", nil, 0)
@@ -22,12 +40,12 @@ func TestConnectorDial(t *testing.T) {
 			p1: point{
 				key:  "1",
 				net:  "tcp",
-				addr: "localhost:10000",
+				addr: "localhost:3000",
 			},
 			p2: point{
 				key:  "1",
 				net:  "tcp",
-				addr: "localhost:10000",
+				addr: "localhost:3000",
 			},
 			same: true,
 		},
@@ -35,12 +53,12 @@ func TestConnectorDial(t *testing.T) {
 			p1: point{
 				key:  "1",
 				net:  "tcp",
-				addr: "localhost:10000",
+				addr: "localhost:3000",
 			},
 			p2: point{
 				key:  "2",
 				net:  "tcp",
-				addr: "localhost:10000",
+				addr: "localhost:3000",
 			},
 			same: false,
 		},
@@ -66,7 +84,7 @@ func BenchmarkConnectorDial(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		key := fmt.Sprint(rand.Int())
 		for pb.Next() {
-			_, err := c.dial(key, "tcp", "localhost:10000")
+			_, err := c.dial(key, "tcp", "localhost:3000")
 			if err != nil {
 				b.Fatalf("dial: %v", err)
 			}
