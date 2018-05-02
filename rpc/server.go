@@ -126,9 +126,11 @@ func (s *Server) readRequest(c codec.ServerCodec) (req *codec.RequestHeader, met
 		args = reflect.New(meth.args)
 		argIsValue = true
 	}
-	if err = c.ReadRequestBody(args.Interface()); err != nil {
-		err = NewError(codes.InvalidRequest, err)
-		return
+	if !isNilInterface(meth.args) {
+		if err = c.ReadRequestBody(args.Interface()); err != nil {
+			err = NewError(codes.InvalidRequest, err)
+			return
+		}
 	}
 	if argIsValue {
 		args = args.Elem()

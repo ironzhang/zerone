@@ -35,6 +35,11 @@ func (t *Arith) Divide(ctx context.Context, args *Args, quo *Quotient) error {
 	return nil
 }
 
+func (t *Arith) Random(ctx context.Context, args interface{}, reply *int) error {
+	*reply = 6
+	return nil
+}
+
 func ServeRPC(network, address string) {
 	ln, err := net.Listen(network, address)
 	if err != nil {
@@ -59,6 +64,7 @@ func TestCallCorrect(t *testing.T) {
 	if err != nil {
 		t.Fatalf("dial: %v", err)
 	}
+	c.SetTraceOutput(ioutil.Discard)
 	defer c.Close()
 
 	var reply int
@@ -93,13 +99,19 @@ func TestCallCorrect(t *testing.T) {
 			reply:         &Quotient{},
 			result:        &Quotient{Quo: 2 / 3, Rem: 2 % 3},
 		},
+		{
+			serviceMethod: "Arith.Random",
+			args:          nil,
+			reply:         &reply,
+			result:        &result,
+		},
 	}
 	for i, tt := range tests {
 		if err := c.Call(context.Background(), tt.serviceMethod, tt.args, tt.reply, 0); err != nil {
 			t.Fatalf("case%d: call: %v", i, err)
 		}
 		if got, want := tt.reply, tt.result; !reflect.DeepEqual(got, want) {
-			t.Fatalf("case%d: reply: %v != %v", i, got, want)
+			t.Fatalf("case%d: reply: %#v != %#v", i, got, want)
 		}
 	}
 }
