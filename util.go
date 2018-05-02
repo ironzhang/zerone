@@ -2,7 +2,7 @@ package zerone
 
 import "reflect"
 
-func newValue(a interface{}) interface{} {
+func newValuePtr(a interface{}) interface{} {
 	if a == nil {
 		return nil
 	}
@@ -10,6 +10,6 @@ func newValue(a interface{}) interface{} {
 	if t.Kind() == reflect.Ptr {
 		return reflect.New(t.Elem()).Interface()
 	} else {
-		return reflect.New(t).Elem().Interface()
+		return reflect.New(t).Interface()
 	}
 }

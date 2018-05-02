@@ -22,9 +22,8 @@ type Client struct {
 }
 
 func NewClient(name string, table route.Table) *Client {
-	var shutdown int32
 	return &Client{
-		shutdown:      &shutdown,
+		shutdown:      new(int32),
 		table:         table,
 		connector:     newConnector(name, nil, 0),
 		balancerset:   newBalancerset(table),
@@ -130,7 +129,7 @@ func (c *Client) Broadcast(ctx context.Context, method string, args, res interfa
 			}
 			continue
 		}
-		call, err := rc.Go(ctx, method, args, newValue(res), make(chan *rpc.Call, 1))
+		call, err := rc.Go(ctx, method, args, newValuePtr(res), make(chan *rpc.Call, 1))
 		if err != nil {
 			ch <- Result{
 				Endpoint: ep,
