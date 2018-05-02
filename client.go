@@ -15,7 +15,7 @@ import (
 type Client struct {
 	shutdown      *int32
 	table         route.Table
-	clientset     *clientset
+	connector     *connector
 	balancerset   *balancerset
 	balancePolicy BalancePolicy
 	failPolicy    FailPolicy
@@ -26,7 +26,7 @@ func NewClient(name string, table route.Table) *Client {
 	return &Client{
 		shutdown:      &shutdown,
 		table:         table,
-		clientset:     newClientset(name, nil, 0),
+		connector:     newConnector(name, nil, 0),
 		balancerset:   newBalancerset(table),
 		balancePolicy: RandomBalancer,
 		failPolicy:    NewFailtry(0, 0, 0),
@@ -37,7 +37,7 @@ func (c *Client) clone() *Client {
 	return &Client{
 		shutdown:      c.shutdown,
 		table:         c.table,
-		clientset:     c.clientset,
+		connector:     c.connector,
 		balancerset:   c.balancerset,
 		balancePolicy: c.balancePolicy,
 		failPolicy:    c.failPolicy,
@@ -46,18 +46,18 @@ func (c *Client) clone() *Client {
 
 func (c *Client) Close() error {
 	if atomic.CompareAndSwapInt32(c.shutdown, 0, 1) {
-		c.clientset.close()
+		c.connector.close()
 		return nil
 	}
 	return rpc.ErrShutdown
 }
 
 func (c *Client) SetTraceOutput(output io.Writer) {
-	c.clientset.setTraceOutput(output)
+	c.connector.setTraceOutput(output)
 }
 
 func (c *Client) SetTraceVerbose(verbose int) {
-	c.clientset.setTraceVerbose(verbose)
+	c.connector.setTraceVerbose(verbose)
 }
 
 func (c *Client) WithBalancePolicy(policy BalancePolicy) *Client {
@@ -79,7 +79,7 @@ func (c *Client) Go(ctx context.Context, key []byte, method string, args, res in
 
 	lb := c.balancerset.getLoadBalancer(c.balancePolicy)
 	return c.failPolicy.execute(lb, key, func(net, addr string) (*rpc.Call, error) {
-		rc, err := c.clientset.dial(fmt.Sprintf("%s://%s", net, addr), net, addr)
+		rc, err := c.connector.dial(fmt.Sprintf("%s://%s", net, addr), net, addr)
 		if err != nil {
 			return nil, err
 		}
@@ -120,7 +120,7 @@ func (c *Client) Broadcast(ctx context.Context, method string, args, res interfa
 	eps := c.table.ListEndpoints()
 	ch := make(chan Result, len(eps))
 	for _, ep := range eps {
-		rc, err := c.clientset.dial(fmt.Sprintf("%s://%s", ep.Net, ep.Addr), ep.Net, ep.Addr)
+		rc, err := c.connector.dial(fmt.Sprintf("%s://%s", ep.Net, ep.Addr), ep.Net, ep.Addr)
 		if err != nil {
 			ch <- Result{
 				Endpoint: ep,

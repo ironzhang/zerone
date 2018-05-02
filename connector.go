@@ -7,7 +7,7 @@ import (
 	"github.com/ironzhang/zerone/rpc"
 )
 
-type clientset struct {
+type connector struct {
 	name    string
 	mu      sync.RWMutex
 	output  io.Writer
@@ -15,8 +15,8 @@ type clientset struct {
 	clients map[string]*rpc.Client
 }
 
-func newClientset(name string, output io.Writer, verbose int) *clientset {
-	return &clientset{
+func newConnector(name string, output io.Writer, verbose int) *connector {
+	return &connector{
 		name:    name,
 		output:  output,
 		verbose: verbose,
@@ -24,7 +24,7 @@ func newClientset(name string, output io.Writer, verbose int) *clientset {
 	}
 }
 
-func (p *clientset) close() {
+func (p *connector) close() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -34,7 +34,7 @@ func (p *clientset) close() {
 	p.clients = make(map[string]*rpc.Client)
 }
 
-func (p *clientset) setTraceOutput(output io.Writer) {
+func (p *connector) setTraceOutput(output io.Writer) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -44,7 +44,7 @@ func (p *clientset) setTraceOutput(output io.Writer) {
 	}
 }
 
-func (p *clientset) setTraceVerbose(verbose int) {
+func (p *connector) setTraceVerbose(verbose int) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -54,7 +54,7 @@ func (p *clientset) setTraceVerbose(verbose int) {
 	}
 }
 
-func (p *clientset) dial(key, net, addr string) (*rpc.Client, error) {
+func (p *connector) dial(key, net, addr string) (*rpc.Client, error) {
 	if c, ok := p.loadClient(key); ok {
 		if c.IsShutdown() {
 			return nil, rpc.ErrShutdown
@@ -80,14 +80,14 @@ func (p *clientset) dial(key, net, addr string) (*rpc.Client, error) {
 	return actual, nil
 }
 
-func (p *clientset) loadClient(key string) (*rpc.Client, bool) {
+func (p *connector) loadClient(key string) (*rpc.Client, bool) {
 	p.mu.RLock()
 	c, ok := p.clients[key]
 	p.mu.RUnlock()
 	return c, ok
 }
 
-func (p *clientset) loadOrStoreClient(key string, c *rpc.Client) (actual *rpc.Client, loaded bool) {
+func (p *connector) loadOrStoreClient(key string, c *rpc.Client) (actual *rpc.Client, loaded bool) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -98,7 +98,7 @@ func (p *clientset) loadOrStoreClient(key string, c *rpc.Client) (actual *rpc.Cl
 	return c, false
 }
 
-func (p *clientset) deleteClient(key string) {
+func (p *connector) deleteClient(key string) {
 	p.mu.Lock()
 	delete(p.clients, key)
 	p.mu.Unlock()
