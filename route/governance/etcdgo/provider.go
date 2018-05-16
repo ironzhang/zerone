@@ -7,6 +7,7 @@ import (
 
 	"github.com/coreos/etcd/client"
 	"github.com/ironzhang/zerone/route"
+	"github.com/ironzhang/zerone/zlog"
 )
 
 type kAPI struct {
@@ -81,15 +82,30 @@ func (p *Provider) pinging(done <-chan struct{}) {
 
 func (p *Provider) register() error {
 	ep := p.endpoint()
-	return p.kAPI.set(context.Background(), ep)
+	if err := p.kAPI.set(context.Background(), ep); err != nil {
+		zlog.Warnf("register endpoint, endpoint: %v, err: %q", ep, err)
+		return err
+	}
+	zlog.Debugf("register endpoint, endpoint: %v", ep)
+	return nil
 }
 
 func (p *Provider) unregister() error {
 	ep := p.endpoint()
-	return p.kAPI.del(context.Background(), ep.Name)
+	if err := p.kAPI.del(context.Background(), ep.Name); err != nil {
+		zlog.Warnf("unregister endpoint, endpoint: %v, err: %q", ep, err)
+		return err
+	}
+	zlog.Debugf("unregister endpoint, endpoint: %v", ep)
+	return nil
 }
 
 func (p *Provider) update() error {
 	ep := p.endpoint()
-	return p.kAPI.set(context.Background(), ep)
+	if err := p.kAPI.set(context.Background(), ep); err != nil {
+		zlog.Warnf("update endpoint, endpoint: %v, err: %q", ep, err)
+		return err
+	}
+	zlog.Debugf("update endpoint, endpoint: %v", ep)
+	return nil
 }
