@@ -83,29 +83,29 @@ func (p *Provider) pinging(done <-chan struct{}) {
 func (p *Provider) register() error {
 	ep := p.endpoint()
 	if err := p.kAPI.set(context.Background(), ep); err != nil {
-		zlog.Warnf("register endpoint, endpoint: %v, err: %q", ep, err)
+		zlog.Warnw("register endpoint", "endpoint", ep, "error", err)
 		return err
 	}
-	zlog.Debugf("register endpoint, endpoint: %v", ep)
+	zlog.Debugw("register endpoint", "endpoint", ep)
 	return nil
 }
 
 func (p *Provider) unregister() error {
 	ep := p.endpoint()
 	if err := p.kAPI.del(context.Background(), ep.Name); err != nil {
-		zlog.Warnf("unregister endpoint, endpoint: %v, err: %q", ep, err)
+		zlog.Warnw("unregister endpoint", "endpoint", ep, "error", err)
 		return err
 	}
-	zlog.Debugf("unregister endpoint, endpoint: %v", ep)
+	zlog.Debugw("unregister endpoint", "endpoint", ep)
 	return nil
 }
 
 func (p *Provider) update() error {
 	ep := p.endpoint()
 	if err := p.kAPI.set(context.Background(), ep); err != nil {
-		zlog.Warnf("update endpoint, endpoint: %v, err: %q", ep, err)
+		zlog.Warnw("update endpoint", "endpoint", ep, "error", err)
 		return err
 	}
-	zlog.Debugf("update endpoint, endpoint: %v", ep)
+	zlog.Debugw("update endpoint", "endpoint", ep)
 	return nil
 }
