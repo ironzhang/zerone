@@ -2,39 +2,18 @@ package etcdgo
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"github.com/coreos/etcd/client"
 	"github.com/ironzhang/zerone/route"
+	"github.com/ironzhang/zerone/route/governance/etcdgo/etcdapi"
 	"github.com/ironzhang/zerone/zlog"
 )
 
-type kAPI struct {
-	api client.KeysAPI
-	dir string
-	ttl time.Duration
-}
-
-func (p *kAPI) set(ctx context.Context, ep route.Endpoint) error {
-	key := p.dir + "/" + ep.Name
-	value, err := json.Marshal(ep)
-	if err != nil {
-		return err
-	}
-	opts := client.SetOptions{TTL: p.ttl}
-	_, err = p.api.Set(ctx, key, string(value), &opts)
-	return err
-}
-
-func (p *kAPI) del(ctx context.Context, name string) error {
-	key := p.dir + "/" + name
-	_, err := p.api.Delete(ctx, key, nil)
-	return err
-}
-
 type Provider struct {
-	kAPI     kAPI
+	api      *etcdapi.API
+	dir      string
+	ttl      time.Duration
 	interval time.Duration
 	endpoint func() route.Endpoint
 	done     chan struct{}
@@ -46,11 +25,9 @@ func NewProvider(api client.KeysAPI, dir string, interval time.Duration, endpoin
 	}
 
 	p := &Provider{
-		kAPI: kAPI{
-			api: api,
-			dir: dir,
-			ttl: interval * 3,
-		},
+		api:      etcdapi.NewAPI(api),
+		dir:      dir,
+		ttl:      interval * 3,
 		interval: interval,
 		endpoint: endpoint,
 		done:     make(chan struct{}),
@@ -82,30 +59,30 @@ func (p *Provider) pinging(done <-chan struct{}) {
 
 func (p *Provider) register() error {
 	ep := p.endpoint()
-	if err := p.kAPI.set(context.Background(), ep); err != nil {
-		zlog.Warnw("register endpoint", "endpoint", ep, "error", err)
+	if err := p.api.Set(context.Background(), p.dir, ep, p.ttl); err != nil {
+		zlog.Warnw("register endpoint", "dir", p.dir, "endpoint", ep, "error", err)
 		return err
 	}
-	zlog.Debugw("register endpoint", "endpoint", ep)
+	zlog.Debugw("register endpoint", "dir", p.dir, "endpoint", ep)
 	return nil
 }
 
 func (p *Provider) unregister() error {
 	ep := p.endpoint()
-	if err := p.kAPI.del(context.Background(), ep.Name); err != nil {
-		zlog.Warnw("unregister endpoint", "endpoint", ep, "error", err)
+	if err := p.api.Del(context.Background(), p.dir, ep.Name); err != nil {
+		zlog.Warnw("unregister endpoint", "dir", p.dir, "endpoint", ep, "error", err)
 		return err
 	}
-	zlog.Debugw("unregister endpoint", "endpoint", ep)
+	zlog.Debugw("unregister endpoint", "dir", p.dir, "endpoint", ep)
 	return nil
 }
 
 func (p *Provider) update() error {
 	ep := p.endpoint()
-	if err := p.kAPI.set(context.Background(), ep); err != nil {
-		zlog.Warnw("update endpoint", "endpoint", ep, "error", err)
+	if err := p.api.Set(context.Background(), p.dir, ep, p.ttl); err != nil {
+		zlog.Warnw("update endpoint", "dir", p.dir, "endpoint", ep, "error", err)
 		return err
 	}
-	zlog.Debugw("update endpoint", "endpoint", ep)
+	zlog.Debugw("update endpoint", "dir", p.dir, "endpoint", ep)
 	return nil
 }
