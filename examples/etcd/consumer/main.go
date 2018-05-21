@@ -8,7 +8,7 @@ import (
 
 	"github.com/coreos/etcd/client"
 	"github.com/ironzhang/zerone/route"
-	"github.com/ironzhang/zerone/route/governance/etcdgo"
+	"github.com/ironzhang/zerone/route/tables/dtable/etcd"
 	"github.com/ironzhang/zerone/zlog"
 )
 
@@ -26,7 +26,7 @@ func main() {
 	opts.Parse()
 	zlog.Default.SetLevel(zlog.Level(opts.Level))
 
-	c, err := etcdgo.NewClient("test", client.Config{Endpoints: []string{"http://127.0.0.1:2379"}})
+	c, err := etcd.NewClient("test", client.Config{Endpoints: []string{"http://127.0.0.1:2379"}})
 	if err != nil {
 		zlog.Fatalw("new client", "error", err)
 	}

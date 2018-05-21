@@ -1,4 +1,4 @@
-package etcdgo
+package etcd
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 
 	"github.com/coreos/etcd/client"
 	"github.com/ironzhang/zerone/route"
-	"github.com/ironzhang/zerone/route/governance/etcdgo/etcdapi"
+	"github.com/ironzhang/zerone/route/tables/dtable/etcd/etcdapi"
 	"github.com/ironzhang/zerone/zlog"
 )
 
