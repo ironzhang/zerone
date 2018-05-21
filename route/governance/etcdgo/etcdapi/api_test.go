@@ -92,3 +92,23 @@ func TestAPI(t *testing.T) {
 	}
 	t.Logf("after del, endpoints: got %v", eps)
 }
+
+func TestWatcher(t *testing.T) {
+	api := NewAPI(NewTestKeysAPI())
+
+	go func() {
+		ep := route.Endpoint{Name: "node1", Net: "tcp", Addr: "localhost:2000"}
+		api.Set(context.Background(), "/TestWatcher", ep, 10*time.Second)
+		api.Set(context.Background(), "/TestWatcher", ep, 10*time.Second)
+		api.Del(context.Background(), "/TestWatcher", ep.Name)
+	}()
+
+	w := api.Watcher("/TestWatcher", 0)
+	for i := 0; i < 3; i++ {
+		evt, err := w.Next(context.Background())
+		if err != nil {
+			t.Fatalf("next: %v", err)
+		}
+		t.Logf("event: %v", evt)
+	}
+}

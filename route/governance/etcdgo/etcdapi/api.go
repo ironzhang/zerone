@@ -43,8 +43,10 @@ func (p *Watcher) Next(ctx context.Context) (evt Event, err error) {
 		return Event{}, err
 	}
 	var ep route.Endpoint
-	if err = json.Unmarshal([]byte(res.Node.Value), &ep); err != nil {
-		return Event{}, err
+	if res.Action == "set" || res.Action == "update" {
+		if err = json.Unmarshal([]byte(res.Node.Value), &ep); err != nil {
+			return Event{}, err
+		}
 	}
 	return Event{
 		Action:   res.Action,
@@ -58,7 +60,12 @@ type API struct {
 }
 
 func NewAPI(a client.KeysAPI) *API {
-	return &API{api: a}
+	return new(API).Init(a)
+}
+
+func (p *API) Init(a client.KeysAPI) *API {
+	p.api = a
+	return p
 }
 
 func (p *API) Get(ctx context.Context, dir string) (endpoints []route.Endpoint, index uint64, err error) {

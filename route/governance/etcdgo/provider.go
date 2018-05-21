@@ -11,7 +11,7 @@ import (
 )
 
 type Provider struct {
-	api      *etcdapi.API
+	api      etcdapi.API
 	dir      string
 	ttl      time.Duration
 	interval time.Duration
@@ -20,18 +20,20 @@ type Provider struct {
 }
 
 func NewProvider(api client.KeysAPI, dir string, interval time.Duration, endpoint func() route.Endpoint) *Provider {
+	return new(Provider).init(api, dir, interval, endpoint)
+}
+
+func (p *Provider) init(api client.KeysAPI, dir string, interval time.Duration, endpoint func() route.Endpoint) *Provider {
 	if endpoint == nil {
 		panic("endpoint is nil")
 	}
 
-	p := &Provider{
-		api:      etcdapi.NewAPI(api),
-		dir:      dir,
-		ttl:      interval * 3,
-		interval: interval,
-		endpoint: endpoint,
-		done:     make(chan struct{}),
-	}
+	p.api.Init(api)
+	p.dir = dir
+	p.ttl = interval * 3
+	p.interval = interval
+	p.endpoint = endpoint
+	p.done = make(chan struct{})
 	go p.pinging(p.done)
 	return p
 }
