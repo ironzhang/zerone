@@ -79,5 +79,5 @@ func TestClient(t *testing.T) {
 	defer consumer.Close()
 
 	time.Sleep(30 * time.Second)
-	log.Printf("last endpoints: %v\n", consumer.GetEndpoints())
+	log.Printf("last endpoints: %v\n", consumer.ListEndpoints())
 }

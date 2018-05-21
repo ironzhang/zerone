@@ -42,7 +42,7 @@ func (c *Consumer) Close() error {
 	return nil
 }
 
-func (c *Consumer) GetEndpoints() []route.Endpoint {
+func (c *Consumer) ListEndpoints() []route.Endpoint {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.list
