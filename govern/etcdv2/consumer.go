@@ -138,7 +138,7 @@ func (c *consumer) update(event etcdapi.Event) {
 	zlog.Debugw("update", "dir", c.dir, "event", event)
 	switch event.Action {
 	case "set", "update":
-		if ep, ok := c.endpoints[event.Name]; !ok || ep != event.Endpoint {
+		if ep, ok := c.endpoints[event.Name]; !ok || !ep.Equal(event.Endpoint) {
 			c.endpoints[event.Name] = event.Endpoint
 			c.doRefresh()
 		}

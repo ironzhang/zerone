@@ -8,8 +8,9 @@ import (
 	"time"
 
 	"github.com/coreos/etcd/client"
+	"github.com/ironzhang/zerone/govern"
+	"github.com/ironzhang/zerone/govern/etcdv2"
 	"github.com/ironzhang/zerone/route"
-	"github.com/ironzhang/zerone/route/tables/dtable/etcd"
 	"github.com/ironzhang/zerone/zlog"
 )
 
@@ -26,31 +27,34 @@ func (o *Options) Parse() {
 	flag.Parse()
 }
 
-func (o *Options) Endpoint() route.Endpoint {
-	ep := route.Endpoint{
-		Name: o.Node,
-		Net:  "tcp",
-		Addr: "localhost:2000",
-	}
-	if o.RandLoad {
-		ep.Load = rand.Float64()
-	}
-	return ep
-}
-
 func main() {
 	var opts Options
 	opts.Parse()
 	zlog.Default.SetLevel(zlog.Level(opts.Level))
 
-	c, err := etcd.NewClient("test", client.Config{Endpoints: []string{"http://127.0.0.1:2379"}})
+	d, err := govern.Open(etcdv2.DriverName, "test", client.Config{Endpoints: []string{"http://127.0.0.1:2379"}})
 	if err != nil {
-		zlog.Fatalw("new client", "error", err)
+		zlog.Fatalw("open", "error", err)
 	}
+	defer d.Close()
 	defer time.Sleep(time.Second)
 
-	p := c.NewProvider("ac-test", opts.Endpoint)
+	ep := &route.Endpoint{
+		Name: opts.Node,
+		Net:  "tcp",
+		Addr: "localhost:2000",
+	}
+	p := d.NewProvider("ac-test", ep, 5*time.Second)
 	defer p.Close()
+
+	if opts.RandLoad {
+		go func() {
+			for {
+				time.Sleep(4 * time.Second)
+				ep.Load = rand.Float64()
+			}
+		}()
+	}
 
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt)

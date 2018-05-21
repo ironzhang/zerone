@@ -7,8 +7,9 @@ import (
 	"time"
 
 	"github.com/coreos/etcd/client"
+	"github.com/ironzhang/zerone/govern"
+	"github.com/ironzhang/zerone/govern/etcdv2"
 	"github.com/ironzhang/zerone/route"
-	"github.com/ironzhang/zerone/route/tables/dtable/etcd"
 	"github.com/ironzhang/zerone/zlog"
 )
 
@@ -26,13 +27,14 @@ func main() {
 	opts.Parse()
 	zlog.Default.SetLevel(zlog.Level(opts.Level))
 
-	c, err := etcd.NewClient("test", client.Config{Endpoints: []string{"http://127.0.0.1:2379"}})
+	d, err := govern.Open(etcdv2.DriverName, "test", client.Config{Endpoints: []string{"http://127.0.0.1:2379"}})
 	if err != nil {
-		zlog.Fatalw("new client", "error", err)
+		zlog.Fatalw("open", "error", err)
 	}
+	defer d.Close()
 	defer time.Sleep(time.Second)
 
-	p := c.NewConsumer("ac-test", refresh)
+	p := d.NewConsumer("ac-test", &route.Endpoint{}, refresh)
 	defer p.Close()
 
 	ch := make(chan os.Signal, 1)
@@ -40,6 +42,6 @@ func main() {
 	<-ch
 }
 
-func refresh(endpoints []route.Endpoint) {
+func refresh(endpoints []govern.Endpoint) {
 	zlog.Infow("refresh", "endpoints", endpoints)
 }

@@ -48,7 +48,7 @@ func (p *provider) Close() error {
 }
 
 func (p *provider) pinging(done <-chan struct{}) {
-	t := time.NewTimer(p.interval)
+	t := time.NewTicker(p.interval)
 	defer t.Stop()
 
 	p.register()

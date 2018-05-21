@@ -10,6 +10,7 @@ type Endpoint interface {
 	String() string
 	Marshal() (string, error)
 	Unmarshal(s string) error
+	Equal(ep Endpoint) bool
 }
 
 type Provider interface {

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/coreos/etcd/client"
+	"github.com/ironzhang/zerone/govern"
 )
 
 func TestParseName(t *testing.T) {
@@ -62,6 +63,11 @@ func (p *Endpoint) Marshal() (string, error) {
 func (p *Endpoint) Unmarshal(s string) error {
 	p.Name = s
 	return nil
+}
+
+func (p *Endpoint) Equal(a govern.Endpoint) bool {
+	ep := a.(*Endpoint)
+	return *p == *ep
 }
 
 func NewEtcdClient(addrs []string) (client.Client, error) {
