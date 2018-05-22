@@ -8,9 +8,9 @@ import (
 type Endpoint interface {
 	Node() string
 	String() string
+	Equal(ep Endpoint) bool
 	Marshal() (string, error)
 	Unmarshal(s string) error
-	Equal(ep Endpoint) bool
 }
 
 type Provider interface {
