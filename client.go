@@ -46,6 +46,9 @@ func (c *Client) clone() *Client {
 func (c *Client) Close() error {
 	if atomic.CompareAndSwapInt32(c.shutdown, 0, 1) {
 		c.connector.close()
+		if closer, ok := c.table.(io.Closer); ok {
+			closer.Close()
+		}
 		return nil
 	}
 	return rpc.ErrShutdown

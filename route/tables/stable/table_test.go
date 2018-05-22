@@ -48,10 +48,10 @@ func TestTable(t *testing.T) {
 	}
 }
 
-func TestLoadTable(t *testing.T) {
+func TestLoadTables(t *testing.T) {
 	config.Default = config.TOML
 
-	cfg := map[string][]route.Endpoint{
+	wtables := Tables{
 		"account": []route.Endpoint{
 			{"0", "tcp", "localhost:10000", 0.0},
 			{"1", "tcp", "localhost:10001", 0.11},
@@ -63,13 +63,44 @@ func TestLoadTable(t *testing.T) {
 			{"2", "udp", "localhost:10002", 0.222},
 		},
 	}
-	if err := config.WriteToFile("example.conf", cfg); err != nil {
+	if err := config.WriteToFile("example.conf", wtables); err != nil {
 		t.Fatalf("write to file: %v", err)
 	}
 
-	tb, err := LoadTable("example.conf", "account")
+	rtables, err := LoadTables("example.conf")
 	if err != nil {
 		t.Fatalf("load table: %v", err)
 	}
-	t.Logf("%v", tb)
+	if got, want := rtables, wtables; !reflect.DeepEqual(got, want) {
+		t.Fatalf("tables: got %v, want %v", got, want)
+	} else {
+		t.Logf("tables: got %v", got)
+	}
+}
+
+func TestTablesLookup(t *testing.T) {
+	tables := Tables{
+		"account": []route.Endpoint{
+			{"0", "tcp", "localhost:10000", 0.0},
+			{"1", "tcp", "localhost:10001", 0.11},
+			{"2", "tcp", "localhost:10002", 0.222},
+		},
+		"logger": []route.Endpoint{
+			{"0", "udp", "localhost:10000", 0.0},
+			{"1", "udp", "localhost:10001", 0.11},
+			{"2", "udp", "localhost:10002", 0.222},
+		},
+	}
+
+	for svc, eps := range tables {
+		tb, err := tables.Lookup(svc)
+		if err != nil {
+			t.Fatalf("%s: Lookup: %v", svc, err)
+		}
+		if got, want := tb.ListEndpoints(), eps; !reflect.DeepEqual(got, want) {
+			t.Fatalf("%s: endpoints: got %v, want %v", svc, got, want)
+		} else {
+			t.Logf("%s: endpoints: got %v", svc, got)
+		}
+	}
 }

@@ -1,21 +1,92 @@
 package zerone
 
-type Options struct {
+import (
+	"fmt"
+
+	"github.com/ironzhang/zerone/govern"
+	"github.com/ironzhang/zerone/route/tables/dtable"
+	"github.com/ironzhang/zerone/route/tables/stable"
+)
+
+type SOptions struct {
+	Filename string
+}
+
+type SZerone struct {
+	tables stable.Tables
+}
+
+func NewSZerone(opts SOptions) (*SZerone, error) {
+	return new(SZerone).Init(opts)
+}
+
+func (p *SZerone) Init(opts SOptions) (*SZerone, error) {
+	var err error
+	if p.tables, err = stable.LoadTables(opts.Filename); err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+func (p *SZerone) NewClient(name, service string) (*Client, error) {
+	tb, err := p.tables.Lookup(service)
+	if err != nil {
+		return nil, err
+	}
+	return NewClient(name, tb), nil
+}
+
+func (p *SZerone) NewServer(name, service string) (*Server, error) {
+	return nil, nil
+}
+
+type DOptions struct {
 	Namespace string
-	EtcdURLs  []string
+	Driver    string
+	Config    interface{}
 }
 
-type Zerone struct {
+type DZerone struct {
+	driver govern.Driver
 }
 
-func New(opts Options) *Zerone {
-	return &Zerone{}
+func NewDZerone(opts DOptions) (*DZerone, error) {
+	return new(DZerone).Init(opts)
 }
 
-func (p *Zerone) NewClient(service string) *Client {
-	return nil
+func (p *DZerone) Init(opts DOptions) (*DZerone, error) {
+	var err error
+	if p.driver, err = govern.Open(opts.Driver, opts.Namespace, opts.Config); err != nil {
+		return nil, err
+	}
+	return p, nil
 }
 
-func (p *Zerone) NewServer(service string) *Server {
-	return nil
+func (p *DZerone) NewClient(name, service string) (*Client, error) {
+	tb := dtable.NewTable(p.driver, service)
+	return NewClient(name, tb), nil
+}
+
+func (p *DZerone) NewServer(name, service string) (*Server, error) {
+	return nil, nil
+}
+
+type Zerone interface {
+	NewClient(name, service string) (*Client, error)
+	NewServer(name, service string) (*Server, error)
+}
+
+func NewZerone(opts interface{}) (Zerone, error) {
+	switch o := opts.(type) {
+	case SOptions:
+		return NewSZerone(o)
+	case *SOptions:
+		return NewSZerone(*o)
+	case DOptions:
+		return NewDZerone(o)
+	case *DOptions:
+		return NewDZerone(*o)
+	default:
+		return nil, fmt.Errorf("unknown options(%T)", opts)
+	}
 }

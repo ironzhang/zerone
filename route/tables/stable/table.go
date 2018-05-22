@@ -25,14 +25,23 @@ func (t *Table) ListEndpoints() []route.Endpoint {
 	return t.endpoints
 }
 
-func LoadTable(filename string, service string) (*Table, error) {
-	var cfg map[string][]route.Endpoint
-	if err := config.LoadFromFile(filename, &cfg); err != nil {
+type Tables map[string][]route.Endpoint
+
+func LoadTables(filename string) (Tables, error) {
+	var tables Tables
+	if err := config.LoadFromFile(filename, &tables); err != nil {
 		return nil, err
 	}
-	endpoints, ok := cfg[service]
-	if !ok || len(endpoints) <= 0 {
-		return nil, fmt.Errorf("not found service: %s", service)
+	return tables, nil
+}
+
+func (t Tables) Lookup(service string) (*Table, error) {
+	endpoints, ok := t[service]
+	if !ok {
+		return nil, fmt.Errorf("service(%s) not found", service)
+	}
+	if len(endpoints) <= 0 {
+		return nil, fmt.Errorf("service(%s) endpoints is empty", service)
 	}
 	return NewTable(endpoints), nil
 }
