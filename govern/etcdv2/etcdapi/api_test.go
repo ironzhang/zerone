@@ -2,6 +2,8 @@ package etcdapi
 
 import (
 	"context"
+	"reflect"
+	"sort"
 	"testing"
 	"time"
 
@@ -82,7 +84,7 @@ func NewTestKeysAPI() client.KeysAPI {
 	return client.NewKeysAPI(c)
 }
 
-func TestAPI(t *testing.T) {
+func TestAPISet(t *testing.T) {
 	api := NewAPI(NewTestKeysAPI(), &Endpoint{})
 
 	endpoints := []Endpoint{
@@ -91,50 +93,94 @@ func TestAPI(t *testing.T) {
 		{Name: "node3"},
 	}
 	for _, ep := range endpoints {
-		if err := api.Set(context.Background(), "/TestAPI", &ep, 10*time.Second); err != nil {
+		if err := api.Set(context.Background(), "/TestAPISet", &ep, 10*time.Second); err != nil {
 			t.Fatalf("set: %v", err)
 		}
 	}
-	eps, _, err := api.Get(context.Background(), "/TestAPI")
+
+	eps, index, err := api.Get(context.Background(), "/TestAPISet")
+	if err != nil {
+		t.Fatalf("get: %v", err)
+	}
+	sort.Slice(eps, func(i, j int) bool { return eps[i].Node() < eps[j].Node() })
+
+	for i, ep := range eps {
+		if got, want := *ep.(*Endpoint), endpoints[i]; got != want {
+			t.Fatalf("%d: endpoint: got %v, want %v", i, got, want)
+		}
+	}
+	t.Logf("index: %v, endpoints: %v", index, eps)
+}
+
+func TestAPIDel(t *testing.T) {
+	api := NewAPI(NewTestKeysAPI(), &Endpoint{})
+
+	endpoints := []Endpoint{
+		{Name: "node1"},
+		{Name: "node2"},
+		{Name: "node3"},
+	}
+	for _, ep := range endpoints {
+		if err := api.Set(context.Background(), "/TestAPIDel", &ep, 10*time.Second); err != nil {
+			t.Fatalf("set: %v", err)
+		}
+	}
+
+	eps, _, err := api.Get(context.Background(), "/TestAPIDel")
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
 	if got, want := len(eps), len(endpoints); got != want {
-		t.Fatalf("after set, count: got %v, want %v", got, want)
+		t.Fatalf("count: got %v, want %v", got, want)
 	}
-	t.Logf("after set, endpoints: got %v", eps)
 
-	for _, ep := range endpoints {
-		if err := api.Del(context.Background(), "/TestAPI", ep.Name); err != nil {
+	for _, ep := range eps {
+		if err := api.Del(context.Background(), "/TestAPIDel", ep.Node()); err != nil {
 			t.Fatalf("del: %v", err)
 		}
 	}
-	eps, _, err = api.Get(context.Background(), "/TestAPI")
+
+	eps, _, err = api.Get(context.Background(), "/TestAPIDel")
 	if err != nil {
 		t.Fatalf("get: %v", err)
 	}
 	if got, want := len(eps), 0; got != want {
-		t.Fatalf("after del, count: got %v, want %v", got, want)
+		t.Fatalf("count: got %v, want %v", got, want)
 	}
-	t.Logf("after del, endpoints: got %v", eps)
 }
 
 func TestWatcher(t *testing.T) {
 	api := NewAPI(NewTestKeysAPI(), &Endpoint{})
 
+	events := []Event{
+		{Action: "set", Name: "node1", Endpoint: &Endpoint{"node1"}},
+		{Action: "set", Name: "node2", Endpoint: &Endpoint{"node2"}},
+		{Action: "set", Name: "node1", Endpoint: &Endpoint{"node1"}},
+		{Action: "delete", Name: "node1", Endpoint: nil},
+		{Action: "delete", Name: "node2", Endpoint: nil},
+		{Action: "set", Name: "node2", Endpoint: &Endpoint{"node2"}},
+	}
+
 	go func() {
-		ep := &Endpoint{Name: "node1"}
-		api.Set(context.Background(), "/TestWatcher", ep, 10*time.Second)
-		api.Set(context.Background(), "/TestWatcher", ep, 10*time.Second)
-		api.Del(context.Background(), "/TestWatcher", ep.Name)
+		for _, event := range events {
+			switch event.Action {
+			case "set":
+				api.Set(context.Background(), "/TestWatcher", event.Endpoint, 10*time.Second)
+			case "delete":
+				api.Del(context.Background(), "/TestWatcher", event.Name)
+			}
+		}
 	}()
 
 	w := api.Watcher("/TestWatcher", 0)
-	for i := 0; i < 3; i++ {
-		evt, err := w.Next(context.Background())
+	for i, want := range events {
+		got, err := w.Next(context.Background())
 		if err != nil {
-			t.Fatalf("next: %v", err)
+			t.Fatalf("%d: next: %v", i, err)
 		}
-		t.Logf("event: %v", evt)
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("%d: event: got %v, want %v", i, got, want)
+		}
+		t.Logf("%d: event: %v", i, got)
 	}
 }
