@@ -30,6 +30,10 @@ func (p *SZerone) Init(opts SOptions) (*SZerone, error) {
 	return p, nil
 }
 
+func (p *SZerone) Close() error {
+	return nil
+}
+
 func (p *SZerone) NewClient(name, service string) (*zclient.Client, error) {
 	tb, err := p.tables.Lookup(service)
 	if err != nil {
@@ -64,6 +68,10 @@ func (p *DZerone) Init(opts DOptions) (*DZerone, error) {
 	return p, nil
 }
 
+func (p *DZerone) Close() error {
+	return p.driver.Close()
+}
+
 func (p *DZerone) NewClient(name, service string) (*zclient.Client, error) {
 	tb := dtable.NewTable(p.driver, service)
 	return zclient.NewClient(name, tb), nil
@@ -73,22 +81,25 @@ func (p *DZerone) NewServer(name, service string) (*zserver.Server, error) {
 	return nil, nil
 }
 
+type Options struct {
+	Zerone string
+	SOptions
+	DOptions
+}
+
 type Zerone interface {
 	NewClient(name, service string) (*zclient.Client, error)
 	NewServer(name, service string) (*zserver.Server, error)
+	Close() error
 }
 
-func NewZerone(opts interface{}) (Zerone, error) {
-	switch o := opts.(type) {
-	case SOptions:
-		return NewSZerone(o)
-	case *SOptions:
-		return NewSZerone(*o)
-	case DOptions:
-		return NewDZerone(o)
-	case *DOptions:
-		return NewDZerone(*o)
+func NewZerone(opts Options) (Zerone, error) {
+	switch opts.Zerone {
+	case "SZerone":
+		return NewSZerone(opts.SOptions)
+	case "DZerone":
+		return NewDZerone(opts.DOptions)
 	default:
-		return nil, fmt.Errorf("unknown options(%T)", opts)
+		return nil, fmt.Errorf("unknown zerone(%s)", opts.Zerone)
 	}
 }
