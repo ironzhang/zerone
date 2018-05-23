@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/coreos/etcd/client"
-	"github.com/ironzhang/zerone/govern"
 )
 
 func TestParseName(t *testing.T) {
@@ -58,7 +57,7 @@ func (p *Endpoint) String() string {
 	return p.Name
 }
 
-func (p *Endpoint) Equal(a govern.Endpoint) bool {
+func (p *Endpoint) Equal(a interface{}) bool {
 	ep := a.(*Endpoint)
 	return *p == *ep
 }

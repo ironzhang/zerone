@@ -45,8 +45,8 @@ func (p *Endpoint) String() string {
 	return fmt.Sprintf("Name: %s, Addr: %s", p.Name, p.Addr)
 }
 
-func (p *Endpoint) Equal(goep govern.Endpoint) bool {
-	ep := goep.(*Endpoint)
+func (p *Endpoint) Equal(a interface{}) bool {
+	ep := a.(*Endpoint)
 	return *p == *ep
 }
 

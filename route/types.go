@@ -2,8 +2,6 @@ package route
 
 import (
 	"encoding/json"
-
-	"github.com/ironzhang/zerone/govern"
 )
 
 type Endpoint struct {
@@ -22,7 +20,7 @@ func (p *Endpoint) String() string {
 	return string(data)
 }
 
-func (p *Endpoint) Equal(a govern.Endpoint) bool {
+func (p *Endpoint) Equal(a interface{}) bool {
 	return *p == *a.(*Endpoint)
 }
 

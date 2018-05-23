@@ -8,7 +8,7 @@ import (
 type Endpoint interface {
 	Node() string
 	String() string
-	Equal(ep Endpoint) bool
+	Equal(ep interface{}) bool
 }
 
 type Provider interface {
