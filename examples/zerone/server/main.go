@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+	"os/signal"
 	"time"
 
 	"github.com/coreos/etcd/client"
@@ -37,9 +39,15 @@ func main() {
 		zlog.Fatalf("register: %v", err)
 	}
 
-	net, addr := "tcp", "localhost:8000"
-	zlog.Infof("listen and serve on %s://%s", net, addr)
-	if err = svr.ListenAndServe(net, addr); err != nil {
-		zlog.Fatalf("listen and serve: %v", err)
-	}
+	go func() {
+		net, addr := "tcp", "localhost:8000"
+		zlog.Infof("listen and serve on %s://%s", net, addr)
+		if err = svr.ListenAndServe(net, addr); err != nil {
+			zlog.Fatalf("listen and serve: %v", err)
+		}
+	}()
+
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, os.Interrupt)
+	<-ch
 }
