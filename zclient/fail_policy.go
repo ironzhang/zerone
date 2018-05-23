@@ -3,14 +3,14 @@ package zclient
 import (
 	"time"
 
-	"github.com/ironzhang/zerone/route"
 	"github.com/ironzhang/zerone/rpc"
+	"github.com/ironzhang/zerone/zclient/balance"
 )
 
 var timeSleep = time.Sleep
 
 type FailPolicy interface {
-	execute(lb route.LoadBalancer, key []byte, do func(net, addr string) (*rpc.Call, error)) (*rpc.Call, error)
+	execute(lb balance.LoadBalancer, key []byte, do func(net, addr string) (*rpc.Call, error)) (*rpc.Call, error)
 }
 
 type Failtry struct {
@@ -39,7 +39,7 @@ func NewFailtry(try int, min, max time.Duration) *Failtry {
 	}
 }
 
-func (p *Failtry) execute(lb route.LoadBalancer, key []byte, do func(net, addr string) (*rpc.Call, error)) (*rpc.Call, error) {
+func (p *Failtry) execute(lb balance.LoadBalancer, key []byte, do func(net, addr string) (*rpc.Call, error)) (*rpc.Call, error) {
 	ep, err := lb.GetEndpoint(key)
 	if err != nil {
 		return nil, err
@@ -78,7 +78,7 @@ func NewFailover(try int) *Failover {
 	}
 }
 
-func (p *Failover) execute(lb route.LoadBalancer, key []byte, do func(net, addr string) (*rpc.Call, error)) (*rpc.Call, error) {
+func (p *Failover) execute(lb balance.LoadBalancer, key []byte, do func(net, addr string) (*rpc.Call, error)) (*rpc.Call, error) {
 	for i := 0; i < p.try; i++ {
 		ep, err := lb.GetEndpoint(key)
 		if err != nil {

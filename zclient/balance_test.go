@@ -4,15 +4,14 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ironzhang/zerone/route"
-	"github.com/ironzhang/zerone/route/balance"
+	"github.com/ironzhang/zerone/zclient/balance"
 )
 
 func TestBalancerset(t *testing.T) {
 	bs := newBalancerset(nil)
 	tests := []struct {
 		policy   BalancePolicy
-		balancer route.LoadBalancer
+		balancer balance.LoadBalancer
 	}{
 		{
 			policy:   RandomBalancer,

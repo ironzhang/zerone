@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/ironzhang/zerone/route"
-	"github.com/ironzhang/zerone/route/balance"
 	"github.com/ironzhang/zerone/route/tables/stable"
 	"github.com/ironzhang/zerone/rpc"
+	"github.com/ironzhang/zerone/zclient/balance"
 )
 
 func TestFailtry(t *testing.T) {

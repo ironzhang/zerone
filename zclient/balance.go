@@ -2,7 +2,7 @@ package zclient
 
 import (
 	"github.com/ironzhang/zerone/route"
-	"github.com/ironzhang/zerone/route/balance"
+	"github.com/ironzhang/zerone/zclient/balance"
 )
 
 // 负载均衡策略
@@ -33,7 +33,7 @@ func newBalancerset(table route.Table) *balancerset {
 	}
 }
 
-func (p *balancerset) getLoadBalancer(policy BalancePolicy) route.LoadBalancer {
+func (p *balancerset) getLoadBalancer(policy BalancePolicy) balance.LoadBalancer {
 	switch policy {
 	case RandomBalancer:
 		return p.randomBalancer

@@ -29,7 +29,3 @@ func (p *Endpoint) Equal(a govern.Endpoint) bool {
 type Table interface {
 	ListEndpoints() []Endpoint
 }
-
-type LoadBalancer interface {
-	GetEndpoint(key []byte) (Endpoint, error)
-}

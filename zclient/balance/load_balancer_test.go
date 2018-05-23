@@ -18,7 +18,7 @@ func (TestTB) ListEndpoints() []route.Endpoint {
 	}
 }
 
-func RunLoadBalancerTests(t *testing.T, b route.LoadBalancer, name string, n int) {
+func RunLoadBalancerTests(t *testing.T, b LoadBalancer, name string, n int) {
 	for i := 0; i < n; i++ {
 		ep, err := b.GetEndpoint([]byte(strconv.Itoa(i)))
 		if err != nil {

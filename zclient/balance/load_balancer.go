@@ -12,9 +12,13 @@ var (
 	ErrNoEndpoint = errors.New("no endpoint")
 )
 
+type LoadBalancer interface {
+	GetEndpoint(key []byte) (route.Endpoint, error)
+}
+
 type Hash func(data []byte) uint32
 
-var _ route.LoadBalancer = &RandomBalancer{}
+var _ LoadBalancer = &RandomBalancer{}
 
 type RandomBalancer struct {
 	table route.Table
@@ -32,7 +36,7 @@ func (b *RandomBalancer) GetEndpoint(key []byte) (route.Endpoint, error) {
 	return route.Endpoint{}, ErrNoEndpoint
 }
 
-var _ route.LoadBalancer = &RoundRobinBalancer{}
+var _ LoadBalancer = &RoundRobinBalancer{}
 
 type RoundRobinBalancer struct {
 	table route.Table
@@ -53,7 +57,7 @@ func (b *RoundRobinBalancer) GetEndpoint(key []byte) (route.Endpoint, error) {
 	return route.Endpoint{}, ErrNoEndpoint
 }
 
-var _ route.LoadBalancer = &HashBalancer{}
+var _ LoadBalancer = &HashBalancer{}
 
 type HashBalancer struct {
 	table route.Table
@@ -76,7 +80,7 @@ func (b *HashBalancer) GetEndpoint(key []byte) (route.Endpoint, error) {
 	return route.Endpoint{}, ErrNoEndpoint
 }
 
-var _ route.LoadBalancer = &NodeBalancer{}
+var _ LoadBalancer = &NodeBalancer{}
 
 type NodeBalancer struct {
 	table route.Table
