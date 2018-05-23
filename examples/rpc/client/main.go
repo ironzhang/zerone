@@ -81,7 +81,7 @@ func (p *Executer) ArithAdd(args []string) error {
 	}
 
 	var reply int
-	if err := p.client.Call(rpc.WithVerbose(context.Background(), p.verbose), "Arith.Add", arith.Args{a, b}, &reply); err != nil {
+	if err := p.client.Call(rpc.WithVerbose(context.Background(), p.verbose), "Arith.Add", arith.Args{a, b}, &reply, 0); err != nil {
 		return err
 	}
 	fmt.Printf("%d\n", reply)
@@ -102,7 +102,7 @@ func (p *Executer) ArithSub(args []string) error {
 	}
 
 	var reply int
-	if err := p.client.Call(rpc.WithVerbose(context.Background(), p.verbose), "Arith.Sub", arith.Args{a, b}, &reply); err != nil {
+	if err := p.client.Call(rpc.WithVerbose(context.Background(), p.verbose), "Arith.Sub", arith.Args{a, b}, &reply, 0); err != nil {
 		return err
 	}
 	fmt.Printf("%d\n", reply)
@@ -123,7 +123,7 @@ func (p *Executer) ArithMul(args []string) error {
 	}
 
 	var reply int
-	if err := p.client.Call(rpc.WithVerbose(context.Background(), p.verbose), "Arith.Multiply", arith.Args{a, b}, &reply); err != nil {
+	if err := p.client.Call(rpc.WithVerbose(context.Background(), p.verbose), "Arith.Multiply", arith.Args{a, b}, &reply, 0); err != nil {
 		return err
 	}
 	fmt.Printf("%d\n", reply)
@@ -144,7 +144,7 @@ func (p *Executer) ArithDiv(args []string) error {
 	}
 
 	var quo arith.Quotient
-	if err := p.client.Call(rpc.WithVerbose(context.Background(), p.verbose), "Arith.Divide", arith.Args{a, b}, &quo); err != nil {
+	if err := p.client.Call(rpc.WithVerbose(context.Background(), p.verbose), "Arith.Divide", arith.Args{a, b}, &quo, 0); err != nil {
 		return err
 	}
 	fmt.Printf("quo: %d, rem: %d\n", quo.Quo, quo.Rem)
@@ -166,7 +166,7 @@ func (p *Executer) Verbose(args []string) error {
 	case "client":
 		p.client.SetTraceVerbose(verbose)
 	case "server":
-		if err := p.client.Call(context.Background(), "Trace.SetVerbose", verbose, nil); err != nil {
+		if err := p.client.Call(context.Background(), "Trace.SetVerbose", verbose, nil, 0); err != nil {
 			return err
 		}
 	default:

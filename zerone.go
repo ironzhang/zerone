@@ -6,6 +6,8 @@ import (
 	"github.com/ironzhang/zerone/govern"
 	"github.com/ironzhang/zerone/route/tables/dtable"
 	"github.com/ironzhang/zerone/route/tables/stable"
+	"github.com/ironzhang/zerone/zclient"
+	"github.com/ironzhang/zerone/zserver"
 )
 
 type SOptions struct {
@@ -28,15 +30,15 @@ func (p *SZerone) Init(opts SOptions) (*SZerone, error) {
 	return p, nil
 }
 
-func (p *SZerone) NewClient(name, service string) (*Client, error) {
+func (p *SZerone) NewClient(name, service string) (*zclient.Client, error) {
 	tb, err := p.tables.Lookup(service)
 	if err != nil {
 		return nil, err
 	}
-	return NewClient(name, tb), nil
+	return zclient.NewClient(name, tb), nil
 }
 
-func (p *SZerone) NewServer(name, service string) (*Server, error) {
+func (p *SZerone) NewServer(name, service string) (*zserver.Server, error) {
 	return nil, nil
 }
 
@@ -62,18 +64,18 @@ func (p *DZerone) Init(opts DOptions) (*DZerone, error) {
 	return p, nil
 }
 
-func (p *DZerone) NewClient(name, service string) (*Client, error) {
+func (p *DZerone) NewClient(name, service string) (*zclient.Client, error) {
 	tb := dtable.NewTable(p.driver, service)
-	return NewClient(name, tb), nil
+	return zclient.NewClient(name, tb), nil
 }
 
-func (p *DZerone) NewServer(name, service string) (*Server, error) {
+func (p *DZerone) NewServer(name, service string) (*zserver.Server, error) {
 	return nil, nil
 }
 
 type Zerone interface {
-	NewClient(name, service string) (*Client, error)
-	NewServer(name, service string) (*Server, error)
+	NewClient(name, service string) (*zclient.Client, error)
+	NewServer(name, service string) (*zserver.Server, error)
 }
 
 func NewZerone(opts interface{}) (Zerone, error) {

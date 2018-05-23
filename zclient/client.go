@@ -1,4 +1,4 @@
-package zerone
+package zclient
 
 import (
 	"context"

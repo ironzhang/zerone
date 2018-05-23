@@ -1,10 +1,12 @@
 package zserver
 
 import (
+	"fmt"
 	"net"
 	"time"
 
 	"github.com/ironzhang/zerone/govern"
+	"github.com/ironzhang/zerone/route"
 	"github.com/ironzhang/zerone/rpc"
 )
 
@@ -41,7 +43,13 @@ func (s *Server) ListenAndServe(network, address string) (err error) {
 		return err
 	}
 	if s.driver != nil {
-		p := s.driver.NewProvider(s.service, 10*time.Second, nil)
+		p := s.driver.NewProvider(s.service, 10*time.Second, func() govern.Endpoint {
+			return &route.Endpoint{
+				Name: fmt.Sprintf("%s://%s", network, address),
+				Net:  network,
+				Addr: address,
+			}
+		})
 		defer p.Close()
 	}
 	s.server.Accept(s.listener)

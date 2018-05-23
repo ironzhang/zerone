@@ -1,4 +1,4 @@
-package zerone
+package zclient
 
 import (
 	"github.com/ironzhang/zerone/route"
