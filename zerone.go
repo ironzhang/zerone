@@ -39,11 +39,11 @@ func (p *SZerone) NewClient(name, service string) (*zclient.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return zclient.NewClient(name, tb), nil
+	return zclient.New(name, tb), nil
 }
 
 func (p *SZerone) NewServer(name, service string) (*zserver.Server, error) {
-	return nil, nil
+	return zserver.New(name, service, nil), nil
 }
 
 type DOptions struct {
@@ -74,11 +74,11 @@ func (p *DZerone) Close() error {
 
 func (p *DZerone) NewClient(name, service string) (*zclient.Client, error) {
 	tb := dtable.NewTable(p.driver, service)
-	return zclient.NewClient(name, tb), nil
+	return zclient.New(name, tb), nil
 }
 
 func (p *DZerone) NewServer(name, service string) (*zserver.Server, error) {
-	return nil, nil
+	return zserver.New(name, service, p.driver), nil
 }
 
 type Options struct {

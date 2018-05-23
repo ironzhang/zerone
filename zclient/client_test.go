@@ -45,7 +45,7 @@ func TestClientCall(t *testing.T) {
 	tb := stable.NewTable([]endpoint.Endpoint{
 		{"0", "tcp", "localhost:4000", 0},
 	})
-	c := NewClient("Client", tb)
+	c := New("Client", tb)
 	defer c.Close()
 
 	args, reply := "hello, world", ""
@@ -66,7 +66,7 @@ func TestClientBroadcast(t *testing.T) {
 		{"1", "tcp", "localhost:4000", 0},
 		{"2", "tcp", "localhost:4000", 0},
 	})
-	c := NewClient("Client", tb)
+	c := New("Client", tb)
 	defer c.Close()
 
 	var reply int

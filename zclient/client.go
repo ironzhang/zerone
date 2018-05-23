@@ -22,7 +22,7 @@ type Client struct {
 	failPolicy    FailPolicy
 }
 
-func NewClient(name string, table route.Table) *Client {
+func New(name string, table route.Table) *Client {
 	return &Client{
 		shutdown:      new(int32),
 		table:         table,
