@@ -3,6 +3,8 @@ package etcdv2
 import (
 	"testing"
 	"time"
+
+	"github.com/ironzhang/zerone/govern"
 )
 
 func TestDriver(t *testing.T) {
@@ -24,7 +26,8 @@ func TestDriver(t *testing.T) {
 		&Endpoint{Name: "node3", Addr: "localhost:2003"},
 	}
 	for _, ep := range endpoints {
-		p := d.NewProvider(sv, ep, 10*time.Second)
+		x := ep
+		p := d.NewProvider(sv, 10*time.Second, func() govern.Endpoint { return x })
 		defer p.Close()
 	}
 

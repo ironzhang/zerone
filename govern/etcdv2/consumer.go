@@ -15,7 +15,7 @@ import (
 type consumer struct {
 	api       etcdapi.API
 	dir       string
-	refresh   func([]govern.Endpoint)
+	refresh   govern.RefreshEndpointsFunc
 	endpoints map[string]govern.Endpoint
 	done      chan struct{}
 
@@ -23,11 +23,11 @@ type consumer struct {
 	list []govern.Endpoint
 }
 
-func newConsumer(api client.KeysAPI, dir string, endpoint govern.Endpoint, refresh func([]govern.Endpoint)) *consumer {
+func newConsumer(api client.KeysAPI, dir string, endpoint govern.Endpoint, refresh govern.RefreshEndpointsFunc) *consumer {
 	return new(consumer).init(api, dir, endpoint, refresh)
 }
 
-func (c *consumer) init(api client.KeysAPI, dir string, endpoint govern.Endpoint, refresh func([]govern.Endpoint)) *consumer {
+func (c *consumer) init(api client.KeysAPI, dir string, endpoint govern.Endpoint, refresh govern.RefreshEndpointsFunc) *consumer {
 	c.api.Init(api, endpoint)
 	c.dir = dir
 	c.refresh = refresh

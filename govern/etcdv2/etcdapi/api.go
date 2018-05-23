@@ -2,6 +2,7 @@ package etcdapi
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
@@ -39,7 +40,7 @@ func (p *API) Get(ctx context.Context, dir string) (endpoints []govern.Endpoint,
 	}
 	for _, node := range res.Node.Nodes {
 		ep := reflect.New(p.typ).Interface().(govern.Endpoint)
-		if err = ep.Unmarshal(node.Value); err != nil {
+		if err = json.Unmarshal([]byte(node.Value), ep); err != nil {
 			return nil, 0, err
 		}
 		endpoints = append(endpoints, ep)
@@ -49,11 +50,11 @@ func (p *API) Get(ctx context.Context, dir string) (endpoints []govern.Endpoint,
 
 func (p *API) Set(ctx context.Context, dir string, ep govern.Endpoint, ttl time.Duration) error {
 	key := dir + "/" + ep.Node()
-	value, err := ep.Marshal()
+	value, err := json.Marshal(ep)
 	if err != nil {
 		return err
 	}
-	_, err = p.api.Set(ctx, key, value, &client.SetOptions{TTL: ttl})
+	_, err = p.api.Set(ctx, key, string(value), &client.SetOptions{TTL: ttl})
 	return err
 }
 
@@ -94,7 +95,7 @@ func (p *Watcher) Next(ctx context.Context) (evt Event, err error) {
 	var ep govern.Endpoint
 	if res.Action == "set" || res.Action == "update" {
 		ep = reflect.New(p.typ).Interface().(govern.Endpoint)
-		if err = ep.Unmarshal(res.Node.Value); err != nil {
+		if err = json.Unmarshal([]byte(res.Node.Value), ep); err != nil {
 			return Event{}, err
 		}
 	}

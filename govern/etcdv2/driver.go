@@ -25,12 +25,12 @@ func (p *Driver) Namespace() string {
 	return p.namespace
 }
 
-func (p *Driver) NewProvider(service string, endpoint govern.Endpoint, interval time.Duration) govern.Provider {
-	return newProvider(p.api, p.dir(service), interval, endpoint)
+func (p *Driver) NewProvider(service string, interval time.Duration, f govern.GetEndpointFunc) govern.Provider {
+	return newProvider(p.api, p.dir(service), interval, f)
 }
 
-func (p *Driver) NewConsumer(service string, endpoint govern.Endpoint, refresh func([]govern.Endpoint)) govern.Consumer {
-	return newConsumer(p.api, p.dir(service), endpoint, refresh)
+func (p *Driver) NewConsumer(service string, endpoint govern.Endpoint, f govern.RefreshEndpointsFunc) govern.Consumer {
+	return newConsumer(p.api, p.dir(service), endpoint, f)
 }
 
 func (p *Driver) Close() error {

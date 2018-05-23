@@ -15,16 +15,20 @@ type provider struct {
 	dir      string
 	ttl      time.Duration
 	interval time.Duration
-	endpoint govern.Endpoint
+	endpoint govern.GetEndpointFunc
 	done     chan struct{}
 }
 
-func newProvider(api client.KeysAPI, dir string, interval time.Duration, endpoint govern.Endpoint) *provider {
+func newProvider(api client.KeysAPI, dir string, interval time.Duration, endpoint govern.GetEndpointFunc) *provider {
 	return new(provider).init(api, dir, interval, endpoint)
 }
 
-func (p *provider) init(api client.KeysAPI, dir string, interval time.Duration, endpoint govern.Endpoint) *provider {
-	p.api.Init(api, endpoint)
+func (p *provider) init(api client.KeysAPI, dir string, interval time.Duration, endpoint govern.GetEndpointFunc) *provider {
+	if endpoint == nil {
+		panic("govern.GetEndpointFunc is nil")
+	}
+
+	p.api.Init(api, endpoint())
 	p.dir = dir
 	p.ttl = interval * 3
 	p.interval = interval
@@ -64,28 +68,31 @@ func (p *provider) pinging(done <-chan struct{}) {
 }
 
 func (p *provider) register() error {
-	if err := p.api.Set(context.Background(), p.dir, p.endpoint, p.ttl); err != nil {
-		zlog.Warnw("register endpoint", "dir", p.dir, "endpoint", p.endpoint, "error", err)
+	ep := p.endpoint()
+	if err := p.api.Set(context.Background(), p.dir, ep, p.ttl); err != nil {
+		zlog.Warnw("register endpoint", "dir", p.dir, "endpoint", ep, "error", err)
 		return err
 	}
-	zlog.Debugw("register endpoint", "dir", p.dir, "endpoint", p.endpoint)
+	zlog.Debugw("register endpoint", "dir", p.dir, "endpoint", ep)
 	return nil
 }
 
 func (p *provider) unregister() error {
-	if err := p.api.Del(context.Background(), p.dir, p.endpoint.Node()); err != nil {
-		zlog.Warnw("unregister endpoint", "dir", p.dir, "endpoint", p.endpoint, "error", err)
+	ep := p.endpoint()
+	if err := p.api.Del(context.Background(), p.dir, ep.Node()); err != nil {
+		zlog.Warnw("unregister endpoint", "dir", p.dir, "endpoint", ep, "error", err)
 		return err
 	}
-	zlog.Debugw("unregister endpoint", "dir", p.dir, "endpoint", p.endpoint)
+	zlog.Debugw("unregister endpoint", "dir", p.dir, "endpoint", ep)
 	return nil
 }
 
 func (p *provider) update() error {
-	if err := p.api.Set(context.Background(), p.dir, p.endpoint, p.ttl); err != nil {
-		zlog.Warnw("update endpoint", "dir", p.dir, "endpoint", p.endpoint, "error", err)
+	ep := p.endpoint()
+	if err := p.api.Set(context.Background(), p.dir, ep, p.ttl); err != nil {
+		zlog.Warnw("update endpoint", "dir", p.dir, "endpoint", ep, "error", err)
 		return err
 	}
-	zlog.Debugw("update endpoint", "dir", p.dir, "endpoint", p.endpoint)
+	zlog.Debugw("update endpoint", "dir", p.dir, "endpoint", ep)
 	return nil
 }

@@ -58,15 +58,6 @@ func (p *Endpoint) String() string {
 	return p.Name
 }
 
-func (p *Endpoint) Marshal() (string, error) {
-	return p.Name, nil
-}
-
-func (p *Endpoint) Unmarshal(s string) error {
-	p.Name = s
-	return nil
-}
-
 func (p *Endpoint) Equal(a govern.Endpoint) bool {
 	ep := a.(*Endpoint)
 	return *p == *ep

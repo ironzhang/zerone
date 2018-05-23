@@ -9,8 +9,6 @@ type Endpoint interface {
 	Node() string
 	String() string
 	Equal(ep Endpoint) bool
-	Marshal() (string, error)
-	Unmarshal(s string) error
 }
 
 type Provider interface {
@@ -26,11 +24,15 @@ type Consumer interface {
 	GetEndpoints() []Endpoint
 }
 
+type GetEndpointFunc func() Endpoint
+
+type RefreshEndpointsFunc func([]Endpoint)
+
 type Driver interface {
 	Name() string
 	Namespace() string
-	NewProvider(service string, endpoint Endpoint, interval time.Duration) Provider
-	NewConsumer(service string, endpoint Endpoint, refresh func([]Endpoint)) Consumer
+	NewProvider(service string, interval time.Duration, f GetEndpointFunc) Provider
+	NewConsumer(service string, endpoint Endpoint, f RefreshEndpointsFunc) Consumer
 	Close() error
 }
 

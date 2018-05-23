@@ -41,7 +41,8 @@ func TestProvider(t *testing.T) {
 		&Endpoint{Name: "node2", Addr: "localhost:2002"},
 	}
 	for _, ep := range endpoints {
-		p := newProvider(api, dir, 10*time.Second, ep)
+		x := ep
+		p := newProvider(api, dir, 10*time.Second, func() govern.Endpoint { return x })
 		defer p.Close()
 	}
 
