@@ -52,7 +52,8 @@ func TestTable(t *testing.T) {
 		&route.Endpoint{Name: "node3", Net: "udp", Addr: "localhost:2003", Load: 0.3},
 	}
 	for _, ep := range endpoints {
-		p := d.NewProvider(sv, ep, 10*time.Second)
+		x := ep
+		p := d.NewProvider(sv, 10*time.Second, func() govern.Endpoint { return x })
 		defer p.Close()
 	}
 

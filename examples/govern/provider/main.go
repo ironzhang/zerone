@@ -39,22 +39,18 @@ func main() {
 	defer d.Close()
 	defer time.Sleep(time.Second)
 
-	ep := &route.Endpoint{
-		Name: opts.Node,
-		Net:  "tcp",
-		Addr: "localhost:2000",
-	}
-	p := d.NewProvider("ac-test", ep, 5*time.Second)
+	p := d.NewProvider("ac-test", 5*time.Second, func() govern.Endpoint {
+		ep := &route.Endpoint{
+			Name: opts.Node,
+			Net:  "tcp",
+			Addr: "localhost:2000",
+		}
+		if opts.RandLoad {
+			ep.Load = rand.Float64()
+		}
+		return ep
+	})
 	defer p.Close()
-
-	if opts.RandLoad {
-		go func() {
-			for {
-				time.Sleep(4 * time.Second)
-				ep.Load = rand.Float64()
-			}
-		}()
-	}
 
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt)

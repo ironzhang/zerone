@@ -26,15 +26,6 @@ func (p *Endpoint) Equal(a govern.Endpoint) bool {
 	return *p == *a.(*Endpoint)
 }
 
-func (p *Endpoint) Marshal() (string, error) {
-	data, err := json.Marshal(p)
-	return string(data), err
-}
-
-func (p *Endpoint) Unmarshal(s string) error {
-	return json.Unmarshal([]byte(s), p)
-}
-
 type Table interface {
 	ListEndpoints() []Endpoint
 }
