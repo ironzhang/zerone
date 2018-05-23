@@ -37,6 +37,10 @@ func (s *Server) Register(rcvr interface{}) error {
 	return s.server.Register(rcvr)
 }
 
+func (s *Server) RegisterName(name string, rcvr interface{}) error {
+	return s.server.RegisterName(name, rcvr)
+}
+
 func (s *Server) ListenAndServe(network, address string) (err error) {
 	s.listener, err = net.Listen(network, address)
 	if err != nil {
