@@ -5,33 +5,33 @@ import (
 	"testing"
 
 	"github.com/ironzhang/pearls/config"
-	"github.com/ironzhang/zerone/route"
+	"github.com/ironzhang/zerone/pkg/endpoint"
 )
 
 func TestTable(t *testing.T) {
 	tests := []struct {
-		ins  []route.Endpoint
-		outs []route.Endpoint
+		ins  []endpoint.Endpoint
+		outs []endpoint.Endpoint
 	}{
 		{
-			ins: []route.Endpoint{
+			ins: []endpoint.Endpoint{
 				{"0", "tcp", "localhost:10000", 0.0},
 				{"1", "tcp", "localhost:10001", 0.11},
 				{"2", "tcp", "localhost:10002", 0.222},
 			},
-			outs: []route.Endpoint{
+			outs: []endpoint.Endpoint{
 				{"0", "tcp", "localhost:10000", 0.0},
 				{"1", "tcp", "localhost:10001", 0.11},
 				{"2", "tcp", "localhost:10002", 0.222},
 			},
 		},
 		{
-			ins: []route.Endpoint{
+			ins: []endpoint.Endpoint{
 				{"1", "udp", "localhost:10001", 0.11},
 				{"0", "udp", "localhost:10000", 0.0},
 				{"2", "udp", "localhost:10002", 0.222},
 			},
-			outs: []route.Endpoint{
+			outs: []endpoint.Endpoint{
 				{"0", "udp", "localhost:10000", 0.0},
 				{"1", "udp", "localhost:10001", 0.11},
 				{"2", "udp", "localhost:10002", 0.222},
@@ -52,12 +52,12 @@ func TestLoadTables(t *testing.T) {
 	config.Default = config.TOML
 
 	wtables := Tables{
-		"account": []route.Endpoint{
+		"account": []endpoint.Endpoint{
 			{"0", "tcp", "localhost:10000", 0.0},
 			{"1", "tcp", "localhost:10001", 0.11},
 			{"2", "tcp", "localhost:10002", 0.222},
 		},
-		"logger": []route.Endpoint{
+		"logger": []endpoint.Endpoint{
 			{"0", "udp", "localhost:10000", 0.0},
 			{"1", "udp", "localhost:10001", 0.11},
 			{"2", "udp", "localhost:10002", 0.222},
@@ -80,12 +80,12 @@ func TestLoadTables(t *testing.T) {
 
 func TestTablesLookup(t *testing.T) {
 	tables := Tables{
-		"account": []route.Endpoint{
+		"account": []endpoint.Endpoint{
 			{"0", "tcp", "localhost:10000", 0.0},
 			{"1", "tcp", "localhost:10001", 0.11},
 			{"2", "tcp", "localhost:10002", 0.222},
 		},
-		"logger": []route.Endpoint{
+		"logger": []endpoint.Endpoint{
 			{"0", "udp", "localhost:10000", 0.0},
 			{"1", "udp", "localhost:10001", 0.11},
 			{"2", "udp", "localhost:10002", 0.222},

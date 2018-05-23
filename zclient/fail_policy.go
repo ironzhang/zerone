@@ -3,8 +3,8 @@ package zclient
 import (
 	"time"
 
+	"github.com/ironzhang/zerone/pkg/balance"
 	"github.com/ironzhang/zerone/rpc"
-	"github.com/ironzhang/zerone/zclient/balance"
 )
 
 var timeSleep = time.Sleep

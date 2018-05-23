@@ -1,8 +1,8 @@
 package zclient
 
 import (
-	"github.com/ironzhang/zerone/route"
-	"github.com/ironzhang/zerone/zclient/balance"
+	"github.com/ironzhang/zerone/pkg/balance"
+	"github.com/ironzhang/zerone/pkg/route"
 )
 
 // 负载均衡策略

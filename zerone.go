@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/ironzhang/zerone/govern"
-	"github.com/ironzhang/zerone/route/tables/dtable"
-	"github.com/ironzhang/zerone/route/tables/stable"
+	"github.com/ironzhang/zerone/pkg/route/dtable"
+	"github.com/ironzhang/zerone/pkg/route/stable"
 	"github.com/ironzhang/zerone/zclient"
 	"github.com/ironzhang/zerone/zserver"
 )

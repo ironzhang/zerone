@@ -7,14 +7,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ironzhang/zerone/route"
-	"github.com/ironzhang/zerone/route/tables/stable"
+	"github.com/ironzhang/zerone/pkg/balance"
+	"github.com/ironzhang/zerone/pkg/endpoint"
+	"github.com/ironzhang/zerone/pkg/route/stable"
 	"github.com/ironzhang/zerone/rpc"
-	"github.com/ironzhang/zerone/zclient/balance"
 )
 
 func TestFailtry(t *testing.T) {
-	tb := stable.NewTable([]route.Endpoint{
+	tb := stable.NewTable([]endpoint.Endpoint{
 		{"0", "tcp", "localhost:10000", 0},
 		{"1", "tcp", "localhost:10001", 0},
 	})
@@ -162,7 +162,7 @@ func TestFailtry(t *testing.T) {
 }
 
 func TestFailover(t *testing.T) {
-	tb := stable.NewTable([]route.Endpoint{
+	tb := stable.NewTable([]endpoint.Endpoint{
 		{"0", "tcp", "localhost:10000", 0},
 		{"1", "tcp", "localhost:10001", 0},
 	})

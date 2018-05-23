@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/ironzhang/zerone/govern"
-	"github.com/ironzhang/zerone/route"
+	"github.com/ironzhang/zerone/pkg/endpoint"
 	"github.com/ironzhang/zerone/rpc"
 )
 
@@ -44,7 +44,7 @@ func (s *Server) ListenAndServe(network, address string) (err error) {
 	}
 	if s.driver != nil {
 		p := s.driver.NewProvider(s.service, 10*time.Second, func() govern.Endpoint {
-			return &route.Endpoint{
+			return &endpoint.Endpoint{
 				Name: fmt.Sprintf("%s://%s", network, address),
 				Net:  network,
 				Addr: address,

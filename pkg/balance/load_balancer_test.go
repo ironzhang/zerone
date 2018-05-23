@@ -4,14 +4,14 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/ironzhang/zerone/route"
+	"github.com/ironzhang/zerone/pkg/endpoint"
 )
 
 type TestTB struct {
 }
 
-func (TestTB) ListEndpoints() []route.Endpoint {
-	return []route.Endpoint{
+func (TestTB) ListEndpoints() []endpoint.Endpoint {
+	return []endpoint.Endpoint{
 		{"0", "tcp", "localhost:2000", 0.0},
 		{"1", "tcp", "localhost:2001", 0.1},
 		{"2", "tcp", "localhost:2002", 0.2},

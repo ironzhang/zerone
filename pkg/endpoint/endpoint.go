@@ -1,4 +1,4 @@
-package route
+package endpoint
 
 import (
 	"encoding/json"
@@ -22,8 +22,4 @@ func (p *Endpoint) String() string {
 
 func (p *Endpoint) Equal(a interface{}) bool {
 	return *p == *a.(*Endpoint)
-}
-
-type Table interface {
-	ListEndpoints() []Endpoint
 }

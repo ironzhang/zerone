@@ -9,7 +9,7 @@ import (
 	"github.com/coreos/etcd/client"
 	"github.com/ironzhang/zerone/govern"
 	"github.com/ironzhang/zerone/govern/etcdv2"
-	"github.com/ironzhang/zerone/route"
+	"github.com/ironzhang/zerone/pkg/endpoint"
 	"github.com/ironzhang/zerone/zlog"
 )
 
@@ -34,7 +34,7 @@ func main() {
 	defer d.Close()
 	defer time.Sleep(time.Second)
 
-	p := d.NewConsumer("ac-test", &route.Endpoint{}, refresh)
+	p := d.NewConsumer("ac-test", &endpoint.Endpoint{}, refresh)
 	defer p.Close()
 
 	ch := make(chan os.Signal, 1)

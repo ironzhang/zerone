@@ -5,8 +5,8 @@ import (
 	"net"
 	"testing"
 
-	"github.com/ironzhang/zerone/route"
-	"github.com/ironzhang/zerone/route/tables/stable"
+	"github.com/ironzhang/zerone/pkg/endpoint"
+	"github.com/ironzhang/zerone/pkg/route/stable"
 	"github.com/ironzhang/zerone/rpc"
 )
 
@@ -42,7 +42,7 @@ func init() {
 }
 
 func TestClientCall(t *testing.T) {
-	tb := stable.NewTable([]route.Endpoint{
+	tb := stable.NewTable([]endpoint.Endpoint{
 		{"0", "tcp", "localhost:4000", 0},
 	})
 	c := NewClient("Client", tb)
@@ -61,7 +61,7 @@ func TestClientCall(t *testing.T) {
 }
 
 func TestClientBroadcast(t *testing.T) {
-	tb := stable.NewTable([]route.Endpoint{
+	tb := stable.NewTable([]endpoint.Endpoint{
 		{"0", "tcp", "localhost:4000", 0},
 		{"1", "tcp", "localhost:4000", 0},
 		{"2", "tcp", "localhost:4000", 0},

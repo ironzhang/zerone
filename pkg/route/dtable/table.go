@@ -4,13 +4,16 @@ import (
 	"sync"
 
 	"github.com/ironzhang/zerone/govern"
-	"github.com/ironzhang/zerone/route"
+	"github.com/ironzhang/zerone/pkg/endpoint"
+	"github.com/ironzhang/zerone/pkg/route"
 )
+
+var _ route.Table = &Table{}
 
 type Table struct {
 	consumer  govern.Consumer
 	mu        sync.RWMutex
-	endpoints []route.Endpoint
+	endpoints []endpoint.Endpoint
 }
 
 func NewTable(driver govern.Driver, service string) *Table {
@@ -18,14 +21,14 @@ func NewTable(driver govern.Driver, service string) *Table {
 }
 
 func (t *Table) init(driver govern.Driver, service string) *Table {
-	t.consumer = driver.NewConsumer(service, &route.Endpoint{}, t.refresh)
+	t.consumer = driver.NewConsumer(service, &endpoint.Endpoint{}, t.refresh)
 	return t
 }
 
 func (t *Table) refresh(goeps []govern.Endpoint) {
-	eps := make([]route.Endpoint, 0, len(goeps))
+	eps := make([]endpoint.Endpoint, 0, len(goeps))
 	for _, goep := range goeps {
-		ep := goep.(*route.Endpoint)
+		ep := goep.(*endpoint.Endpoint)
 		eps = append(eps, *ep)
 	}
 
@@ -38,7 +41,7 @@ func (t *Table) Close() error {
 	return t.consumer.Close()
 }
 
-func (t *Table) ListEndpoints() []route.Endpoint {
+func (t *Table) ListEndpoints() []endpoint.Endpoint {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 	return t.endpoints

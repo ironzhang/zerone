@@ -5,27 +5,28 @@ import (
 	"sort"
 
 	"github.com/ironzhang/pearls/config"
-	"github.com/ironzhang/zerone/route"
+	"github.com/ironzhang/zerone/pkg/endpoint"
+	"github.com/ironzhang/zerone/pkg/route"
 )
 
 var _ route.Table = &Table{}
 
 type Table struct {
-	endpoints []route.Endpoint
+	endpoints []endpoint.Endpoint
 }
 
-func NewTable(endpoints []route.Endpoint) *Table {
+func NewTable(endpoints []endpoint.Endpoint) *Table {
 	sort.Slice(endpoints, func(i, j int) bool {
 		return endpoints[i].Name < endpoints[j].Name
 	})
 	return &Table{endpoints: endpoints}
 }
 
-func (t *Table) ListEndpoints() []route.Endpoint {
+func (t *Table) ListEndpoints() []endpoint.Endpoint {
 	return t.endpoints
 }
 
-type Tables map[string][]route.Endpoint
+type Tables map[string][]endpoint.Endpoint
 
 func LoadTables(filename string) (Tables, error) {
 	var tables Tables

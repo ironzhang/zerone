@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ironzhang/zerone/zclient/balance"
+	"github.com/ironzhang/zerone/pkg/balance"
 )
 
 func TestBalancerset(t *testing.T) {

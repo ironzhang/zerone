@@ -8,7 +8,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ironzhang/zerone/route"
+	"github.com/ironzhang/zerone/pkg/endpoint"
+	"github.com/ironzhang/zerone/pkg/route"
 	"github.com/ironzhang/zerone/rpc"
 )
 
@@ -110,7 +111,7 @@ func (c *Client) Call(ctx context.Context, key []byte, method string, args, res 
 }
 
 type Result struct {
-	Endpoint route.Endpoint
+	Endpoint endpoint.Endpoint
 	Error    error
 	Method   string
 	Args     interface{}
@@ -144,7 +145,7 @@ func (c *Client) Broadcast(ctx context.Context, method string, args, res interfa
 		}
 
 		wg.Add(1)
-		go func(ep route.Endpoint, call *rpc.Call) {
+		go func(ep endpoint.Endpoint, call *rpc.Call) {
 			defer wg.Done()
 			var tc <-chan time.Time
 			if timeout > 0 {

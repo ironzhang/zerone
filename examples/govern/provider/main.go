@@ -10,7 +10,7 @@ import (
 	"github.com/coreos/etcd/client"
 	"github.com/ironzhang/zerone/govern"
 	"github.com/ironzhang/zerone/govern/etcdv2"
-	"github.com/ironzhang/zerone/route"
+	"github.com/ironzhang/zerone/pkg/endpoint"
 	"github.com/ironzhang/zerone/zlog"
 )
 
@@ -40,7 +40,7 @@ func main() {
 	defer time.Sleep(time.Second)
 
 	p := d.NewProvider("ac-test", 5*time.Second, func() govern.Endpoint {
-		ep := &route.Endpoint{
+		ep := &endpoint.Endpoint{
 			Name: opts.Node,
 			Net:  "tcp",
 			Addr: "localhost:2000",
