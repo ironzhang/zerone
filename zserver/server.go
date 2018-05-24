@@ -31,7 +31,10 @@ func New(name, service string, driver Driver) *Server {
 }
 
 func (s *Server) Close() error {
-	return s.listener.Close()
+	if s.listener != nil {
+		return s.listener.Close()
+	}
+	return nil
 }
 
 func (s *Server) SetTraceOutput(out io.Writer) {
