@@ -59,6 +59,10 @@ func (c *Client) SetTraceOutput(output io.Writer) {
 	c.connector.setTraceOutput(output)
 }
 
+func (c *Client) GetTraceVerbose() int {
+	return c.connector.getTraceVerbose()
+}
+
 func (c *Client) SetTraceVerbose(verbose int) {
 	c.connector.setTraceVerbose(verbose)
 }

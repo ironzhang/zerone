@@ -2,6 +2,7 @@ package zserver
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"time"
 
@@ -31,6 +32,18 @@ func New(name, service string, driver Driver) *Server {
 
 func (s *Server) Close() error {
 	return s.listener.Close()
+}
+
+func (s *Server) SetTraceOutput(out io.Writer) {
+	s.server.SetTraceOutput(out)
+}
+
+func (s *Server) GetTraceVerbose() int {
+	return s.server.GetTraceVerbose()
+}
+
+func (s *Server) SetTraceVerbose(verbose int) {
+	s.server.SetTraceVerbose(verbose)
 }
 
 func (s *Server) Register(rcvr interface{}) error {

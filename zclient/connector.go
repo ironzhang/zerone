@@ -44,6 +44,12 @@ func (p *connector) setTraceOutput(output io.Writer) {
 	}
 }
 
+func (p *connector) getTraceVerbose() int {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	return p.verbose
+}
+
 func (p *connector) setTraceVerbose(verbose int) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
