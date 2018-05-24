@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ironzhang/pearls/config"
+	"github.com/ironzhang/x-pearls/config"
 	"github.com/ironzhang/zerone/pkg/endpoint"
 )
 

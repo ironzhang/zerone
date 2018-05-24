@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/coreos/etcd/client"
+	"github.com/ironzhang/x-pearls/govern/etcdv2"
+	"github.com/ironzhang/x-pearls/zlog"
 	"github.com/ironzhang/zerone"
 	"github.com/ironzhang/zerone/examples/rpc/arith"
-	"github.com/ironzhang/zerone/govern/etcdv2"
-	"github.com/ironzhang/zerone/zlog"
 )
 
 func main() {

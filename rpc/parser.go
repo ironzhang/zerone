@@ -8,7 +8,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/ironzhang/zerone/zlog"
+	"github.com/ironzhang/x-pearls/zlog"
 )
 
 var (

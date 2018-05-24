@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/ironzhang/pearls/config"
+	"github.com/ironzhang/x-pearls/config"
 	"github.com/ironzhang/zerone/pkg/endpoint"
 	"github.com/ironzhang/zerone/pkg/route"
 )

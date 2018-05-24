@@ -3,7 +3,7 @@ package zerone
 import (
 	"fmt"
 
-	"github.com/ironzhang/zerone/govern"
+	"github.com/ironzhang/x-pearls/govern"
 	"github.com/ironzhang/zerone/pkg/route/dtable"
 	"github.com/ironzhang/zerone/pkg/route/stable"
 	"github.com/ironzhang/zerone/zclient"

@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ironzhang/x-pearls/zlog"
 	"github.com/ironzhang/zerone/examples/rpc/arith"
 	"github.com/ironzhang/zerone/rpc"
-	"github.com/ironzhang/zerone/zlog"
 )
 
 type Options struct {

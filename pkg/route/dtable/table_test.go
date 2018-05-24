@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/coreos/etcd/client"
-	"github.com/ironzhang/zerone/govern"
-	"github.com/ironzhang/zerone/govern/etcdv2"
+	"github.com/ironzhang/x-pearls/govern"
+	"github.com/ironzhang/x-pearls/govern/etcdv2"
 	"github.com/ironzhang/zerone/pkg/endpoint"
 )
 

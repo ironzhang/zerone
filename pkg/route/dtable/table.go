@@ -3,7 +3,7 @@ package dtable
 import (
 	"sync"
 
-	"github.com/ironzhang/zerone/govern"
+	"github.com/ironzhang/x-pearls/govern"
 	"github.com/ironzhang/zerone/pkg/endpoint"
 	"github.com/ironzhang/zerone/pkg/route"
 )

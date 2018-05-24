@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ironzhang/zerone/zlog"
+	"github.com/ironzhang/x-pearls/zlog"
 )
 
 func init() {

@@ -6,7 +6,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/ironzhang/zerone/govern"
+	"github.com/ironzhang/x-pearls/govern"
 	"github.com/ironzhang/zerone/pkg/endpoint"
 	"github.com/ironzhang/zerone/rpc"
 )
