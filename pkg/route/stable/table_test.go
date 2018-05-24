@@ -1,6 +1,7 @@
 package stable
 
 import (
+	"os"
 	"reflect"
 	"testing"
 
@@ -49,8 +50,7 @@ func TestTable(t *testing.T) {
 }
 
 func TestLoadTables(t *testing.T) {
-	config.Default = config.TOML
-
+	filename := "example.json"
 	wtables := Tables{
 		"account": []endpoint.Endpoint{
 			{"0", "tcp", "localhost:10000", 0.0},
@@ -63,11 +63,12 @@ func TestLoadTables(t *testing.T) {
 			{"2", "udp", "localhost:10002", 0.222},
 		},
 	}
-	if err := config.WriteToFile("example.conf", wtables); err != nil {
+	if err := config.WriteToFile(filename, wtables); err != nil {
 		t.Fatalf("write to file: %v", err)
 	}
+	defer os.Remove(filename)
 
-	rtables, err := LoadTables("example.conf")
+	rtables, err := LoadTables(filename)
 	if err != nil {
 		t.Fatalf("load table: %v", err)
 	}
