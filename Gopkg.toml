@@ -23,3 +23,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/ironzhang/pearls"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/ironzhang/x-pearls"
