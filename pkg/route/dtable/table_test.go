@@ -5,9 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/coreos/etcd/client"
 	"github.com/ironzhang/x-pearls/govern"
-	"github.com/ironzhang/x-pearls/govern/etcdv2"
+	"github.com/ironzhang/x-pearls/govern/stub"
 	"github.com/ironzhang/zerone/pkg/endpoint"
 )
 
@@ -16,7 +15,8 @@ func init() {
 }
 
 func OpenTestDriver(namespace string) govern.Driver {
-	driver, err := govern.Open(etcdv2.DriverName, namespace, client.Config{Endpoints: []string{"http://127.0.0.1:2379"}})
+	//driver, err := govern.Open(etcdv2.DriverName, namespace, client.Config{Endpoints: []string{"http://127.0.0.1:2379"}})
+	driver, err := govern.Open(stub.DriverName, namespace, nil)
 	if err != nil {
 		panic(err)
 	}
