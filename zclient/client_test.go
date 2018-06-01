@@ -79,3 +79,22 @@ func TestClientBroadcast(t *testing.T) {
 		t.Logf("call %v reply: %v", res.Endpoint, *res.Reply.(*int))
 	}
 }
+
+func TestClientWithBalancePolicy(t *testing.T) {
+	tb := stable.NewTable([]endpoint.Endpoint{
+		{"0", "tcp", "localhost:4000", 0},
+	})
+	c := New("Client", tb)
+	defer c.Close()
+
+	args, reply := "hello, world", ""
+	err := c.WithBalancePolicy(HashBalancer).WithFailPolicy(NewFailover(3)).Call(context.Background(), nil, "Echo.Echo", args, &reply, 0)
+	if err != nil {
+		t.Fatalf("call: %v", err)
+	}
+	if args != reply {
+		t.Errorf("args(%s) != reply(%s)", args, reply)
+	} else {
+		t.Logf("args(%s) == reply(%s)", args, reply)
+	}
+}
