@@ -8,16 +8,28 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/ironzhang/zerone/pkg/balance"
 	"github.com/ironzhang/zerone/pkg/endpoint"
 	"github.com/ironzhang/zerone/pkg/route"
 	"github.com/ironzhang/zerone/rpc"
+)
+
+// 负载均衡策略
+type BalancePolicy string
+
+// 负载均衡策略常量定义
+const (
+	RandomBalancer     BalancePolicy = balance.RandomBalancerName
+	RoundRobinBalancer BalancePolicy = balance.RoundRobinBalancerName
+	HashBalancer       BalancePolicy = balance.HashBalancerName
+	NodeBalancer       BalancePolicy = balance.NodeBalancerName
 )
 
 type Client struct {
 	shutdown      *int32
 	table         route.Table
 	connector     *connector
-	balancerset   *balancerset
+	balance       *balance.Manager
 	balancePolicy BalancePolicy
 	failPolicy    FailPolicy
 }
@@ -27,7 +39,7 @@ func New(name string, table route.Table) *Client {
 		shutdown:      new(int32),
 		table:         table,
 		connector:     newConnector(name, nil, 0),
-		balancerset:   newBalancerset(table),
+		balance:       balance.NewManager(table, nil),
 		balancePolicy: RandomBalancer,
 		failPolicy:    NewFailtry(0, 0, 0),
 	}
@@ -38,7 +50,7 @@ func (c *Client) clone() *Client {
 		shutdown:      c.shutdown,
 		table:         c.table,
 		connector:     c.connector,
-		balancerset:   c.balancerset,
+		balance:       c.balance,
 		balancePolicy: c.balancePolicy,
 		failPolicy:    c.failPolicy,
 	}
@@ -84,7 +96,7 @@ func (c *Client) Go(ctx context.Context, key []byte, method string, args, res in
 		return nil, rpc.ErrShutdown
 	}
 
-	lb := c.balancerset.getLoadBalancer(c.balancePolicy)
+	lb := c.balance.GetLoadBalancer(string(c.balancePolicy))
 	return c.failPolicy.execute(lb, key, func(net, addr string) (*rpc.Call, error) {
 		rc, err := c.connector.dial(fmt.Sprintf("%s://%s", net, addr), net, addr)
 		if err != nil {
