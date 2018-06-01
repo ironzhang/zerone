@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/ironzhang/x-pearls/govern"
@@ -16,10 +17,12 @@ type Driver interface {
 }
 
 type Server struct {
-	server   *rpc.Server
-	service  string
-	driver   Driver
-	listener net.Listener
+	server  *rpc.Server
+	service string
+	driver  Driver
+
+	mu  sync.Mutex
+	lns []net.Listener
 }
 
 func New(name, service string, driver Driver) *Server {
@@ -31,9 +34,12 @@ func New(name, service string, driver Driver) *Server {
 }
 
 func (s *Server) Close() error {
-	if s.listener != nil {
-		return s.listener.Close()
+	s.mu.Lock()
+	for _, ln := range s.lns {
+		ln.Close()
 	}
+	s.lns = nil
+	s.mu.Unlock()
 	return nil
 }
 
@@ -58,10 +64,12 @@ func (s *Server) RegisterName(name string, rcvr interface{}) error {
 }
 
 func (s *Server) ListenAndServe(network, address string) (err error) {
-	s.listener, err = net.Listen(network, address)
+	ln, err := net.Listen(network, address)
 	if err != nil {
 		return err
 	}
+	s.addListener(ln)
+
 	if s.driver != nil {
 		p := s.driver.NewProvider(s.service, 10*time.Second, func() govern.Endpoint {
 			return &endpoint.Endpoint{
@@ -72,6 +80,12 @@ func (s *Server) ListenAndServe(network, address string) (err error) {
 		})
 		defer p.Close()
 	}
-	s.server.Accept(s.listener)
+	s.server.Accept(ln)
 	return nil
+}
+
+func (s *Server) addListener(ln net.Listener) {
+	s.mu.Lock()
+	s.lns = append(s.lns, ln)
+	s.mu.Unlock()
 }
