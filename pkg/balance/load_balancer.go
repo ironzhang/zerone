@@ -9,11 +9,19 @@ import (
 	"github.com/ironzhang/zerone/pkg/route"
 )
 
+const (
+	RandomBalancerName     = "RandomBalancer"
+	RoundRobinBalancerName = "RoundRobinBalancer"
+	HashBalancerName       = "HashBalancer"
+	NodeBalancerName       = "NodeBalancer"
+)
+
 var (
 	ErrNoEndpoint = errors.New("no endpoint")
 )
 
 type LoadBalancer interface {
+	Name() string
 	GetEndpoint(key []byte) (endpoint.Endpoint, error)
 }
 
@@ -27,6 +35,10 @@ type RandomBalancer struct {
 
 func NewRandomBalancer(table route.Table) *RandomBalancer {
 	return &RandomBalancer{table: table}
+}
+
+func (b *RandomBalancer) Name() string {
+	return RandomBalancerName
 }
 
 func (b *RandomBalancer) GetEndpoint(key []byte) (endpoint.Endpoint, error) {
@@ -46,6 +58,10 @@ type RoundRobinBalancer struct {
 
 func NewRoundRobinBalancer(table route.Table) *RoundRobinBalancer {
 	return &RoundRobinBalancer{table: table, index: 0}
+}
+
+func (b *RoundRobinBalancer) Name() string {
+	return RoundRobinBalancerName
 }
 
 func (b *RoundRobinBalancer) GetEndpoint(key []byte) (endpoint.Endpoint, error) {
@@ -72,6 +88,10 @@ func NewHashBalancer(table route.Table, hash Hash) *HashBalancer {
 	return &HashBalancer{table: table, hash: hash}
 }
 
+func (b *HashBalancer) Name() string {
+	return HashBalancerName
+}
+
 func (b *HashBalancer) GetEndpoint(key []byte) (endpoint.Endpoint, error) {
 	eps := b.table.ListEndpoints()
 	if n := uint32(len(eps)); n > 0 {
@@ -89,6 +109,10 @@ type NodeBalancer struct {
 
 func NewNodeBalancer(table route.Table) *NodeBalancer {
 	return &NodeBalancer{table: table}
+}
+
+func (b *NodeBalancer) Name() string {
+	return NodeBalancerName
 }
 
 func (b *NodeBalancer) GetEndpoint(key []byte) (endpoint.Endpoint, error) {
