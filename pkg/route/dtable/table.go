@@ -8,10 +8,6 @@ import (
 	"github.com/ironzhang/zerone/pkg/route"
 )
 
-type Driver interface {
-	NewConsumer(service string, endpoint govern.Endpoint, f govern.RefreshEndpointsFunc) govern.Consumer
-}
-
 var _ route.Table = &Table{}
 
 type Table struct {
@@ -20,11 +16,11 @@ type Table struct {
 	endpoints []endpoint.Endpoint
 }
 
-func NewTable(driver Driver, service string) *Table {
+func NewTable(driver govern.Driver, service string) *Table {
 	return new(Table).init(driver, service)
 }
 
-func (t *Table) init(driver Driver, service string) *Table {
+func (t *Table) init(driver govern.Driver, service string) *Table {
 	t.consumer = driver.NewConsumer(service, &endpoint.Endpoint{}, t.refresh)
 	return t
 }

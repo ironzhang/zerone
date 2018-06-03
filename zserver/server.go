@@ -12,20 +12,16 @@ import (
 	"github.com/ironzhang/zerone/rpc"
 )
 
-type Driver interface {
-	NewProvider(service string, interval time.Duration, f govern.GetEndpointFunc) govern.Provider
-}
-
 type Server struct {
 	server  *rpc.Server
 	service string
-	driver  Driver
+	driver  govern.Driver
 
 	mu  sync.Mutex
 	lns []net.Listener
 }
 
-func New(name, service string, driver Driver) *Server {
+func New(name, service string, driver govern.Driver) *Server {
 	return &Server{
 		server:  rpc.NewServer(name),
 		service: service,
