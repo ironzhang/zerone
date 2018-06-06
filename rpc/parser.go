@@ -111,13 +111,13 @@ func suitableMethods(typ reflect.Type, reportErr bool) map[string]*method {
 	return methods
 }
 
-type service struct {
+type class struct {
 	name    string
 	rcvr    reflect.Value
 	methods map[string]*method
 }
 
-func parseService(name string, rcvr reflect.Value) (*service, error) {
+func parseClass(name string, rcvr reflect.Value) (*class, error) {
 	typ := rcvr.Type()
 	methods := suitableMethods(typ, true)
 	if len(methods) <= 0 {
@@ -130,7 +130,7 @@ func parseService(name string, rcvr reflect.Value) (*service, error) {
 		}
 		return nil, errors.New(str)
 	}
-	return &service{name: name, rcvr: rcvr, methods: methods}, nil
+	return &class{name: name, rcvr: rcvr, methods: methods}, nil
 }
 
 func isNilInterface(t reflect.Type) bool {

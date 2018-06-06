@@ -109,7 +109,7 @@ func TestServerRegisterCorrect(t *testing.T) {
 		if err := s.register(tt.rcvr, tt.name); err != nil {
 			t.Fatalf("case%d: register: %v", i, err)
 		}
-		if _, ok := s.serviceMap.Load(tt.service); !ok {
+		if _, ok := s.classMap.Load(tt.service); !ok {
 			t.Fatalf("case%d: %q not found", i, tt.service)
 		}
 	}
@@ -159,7 +159,7 @@ func TestSplitServiceMethodCorrect(t *testing.T) {
 		{serviceMethod: "ABC.abc", service: "ABC", method: "abc"},
 	}
 	for _, tt := range tests {
-		service, method, err := splitServiceMethod(tt.serviceMethod)
+		service, method, err := splitClassMethod(tt.serviceMethod)
 		if err != nil {
 			t.Fatalf("serviceMethod=%q: splitServiceMethod: %v", tt.serviceMethod, err)
 		}
@@ -175,7 +175,7 @@ func TestSplitServiceMethodCorrect(t *testing.T) {
 func TestSplitServiceMethodError(t *testing.T) {
 	tests := []string{"", "a", "aaa", "a@b"}
 	for _, tt := range tests {
-		_, _, err := splitServiceMethod(tt)
+		_, _, err := splitClassMethod(tt)
 		if err == nil {
 			t.Fatalf("serviceMethod=%q: splitServiceMethod return error is nil", tt)
 		} else {
@@ -196,7 +196,7 @@ func getMethod(rcvr interface{}, methodName string) *method {
 	}
 }
 
-func TestLookupServiceMethod(t *testing.T) {
+func TestLookupClassMethod(t *testing.T) {
 	var a Arith
 	var b BuiltinTypes
 	var s Server
@@ -219,7 +219,7 @@ func TestLookupServiceMethod(t *testing.T) {
 		{service: "BuiltinTypes", method: "Slice", rcvr: reflect.ValueOf(b), meth: getMethod(b, "Slice")},
 	}
 	for _, tt := range tests {
-		rcvr, meth, err := s.lookupServiceMethod(tt.service, tt.method)
+		rcvr, meth, err := s.lookupClassMethod(tt.service, tt.method)
 		if err != nil {
 			t.Fatalf("service=%q, method=%q: lookupServiceMethod: %v", tt.service, tt.method, err)
 		}
@@ -311,11 +311,11 @@ func TestServerReadRequestCorrect(t *testing.T) {
 	}
 	for _, tt := range tests {
 		header := codec.RequestHeader{
-			ServiceMethod: fmt.Sprintf("%s.%s", tt.service, tt.method),
-			Sequence:      rand.Uint64(),
-			TraceID:       "TraceID",
-			ClientName:    "ClientName",
-			Verbose:       1,
+			ClassMethod: fmt.Sprintf("%s.%s", tt.service, tt.method),
+			Sequence:    rand.Uint64(),
+			TraceID:     "TraceID",
+			ClientName:  "ClientName",
+			Verbose:     1,
 		}
 		codec := &testServerCodec{reqHeader: header, reqBody: tt.args}
 
@@ -371,57 +371,57 @@ func TestServerReadRequestError(t *testing.T) {
 		{
 			headerErr: nil,
 			header: codec.RequestHeader{
-				ServiceMethod: "",
-				Sequence:      1,
+				ClassMethod: "",
+				Sequence:    1,
 			},
 			bodyErr:     nil,
 			body:        nil,
 			keepReading: true,
 			expectReq: &codec.RequestHeader{
-				ServiceMethod: "",
-				Sequence:      1,
+				ClassMethod: "",
+				Sequence:    1,
 			},
 		},
 		{
 			headerErr: nil,
 			header: codec.RequestHeader{
-				ServiceMethod: ".Add",
-				Sequence:      2,
+				ClassMethod: ".Add",
+				Sequence:    2,
 			},
 			bodyErr:     nil,
 			body:        nil,
 			keepReading: true,
 			expectReq: &codec.RequestHeader{
-				ServiceMethod: ".Add",
-				Sequence:      2,
+				ClassMethod: ".Add",
+				Sequence:    2,
 			},
 		},
 		{
 			headerErr: nil,
 			header: codec.RequestHeader{
-				ServiceMethod: "Arith.",
-				Sequence:      3,
+				ClassMethod: "Arith.",
+				Sequence:    3,
 			},
 			bodyErr:     nil,
 			body:        nil,
 			keepReading: true,
 			expectReq: &codec.RequestHeader{
-				ServiceMethod: "Arith.",
-				Sequence:      3,
+				ClassMethod: "Arith.",
+				Sequence:    3,
 			},
 		},
 		{
 			headerErr: nil,
 			header: codec.RequestHeader{
-				ServiceMethod: "Arith.Add",
-				Sequence:      4,
+				ClassMethod: "Arith.Add",
+				Sequence:    4,
 			},
 			bodyErr:     io.EOF,
 			body:        nil,
 			keepReading: true,
 			expectReq: &codec.RequestHeader{
-				ServiceMethod: "Arith.Add",
-				Sequence:      4,
+				ClassMethod: "Arith.Add",
+				Sequence:    4,
 			},
 		},
 	}
@@ -452,76 +452,76 @@ func TestServerWriteResponse(t *testing.T) {
 	}{
 		{
 			req: codec.RequestHeader{
-				ServiceMethod: "Arith.Add",
-				Sequence:      1,
+				ClassMethod: "Arith.Add",
+				Sequence:    1,
 			},
 			resp: codec.ResponseHeader{
-				ServiceMethod: "Arith.Add",
-				Sequence:      1,
+				ClassMethod: "Arith.Add",
+				Sequence:    1,
 			},
 		},
 		{
 			req: codec.RequestHeader{
-				ServiceMethod: "Arith.Add",
-				Sequence:      1,
+				ClassMethod: "Arith.Add",
+				Sequence:    1,
 			},
 			reply: &Reply{C: 3},
 			resp: codec.ResponseHeader{
-				ServiceMethod: "Arith.Add",
-				Sequence:      1,
+				ClassMethod: "Arith.Add",
+				Sequence:    1,
 			},
 		},
 		{
 			req: codec.RequestHeader{
-				ServiceMethod: "Arith.Add",
-				Sequence:      1,
+				ClassMethod: "Arith.Add",
+				Sequence:    1,
 			},
 			reply: nil,
 			err:   io.EOF,
 			resp: codec.ResponseHeader{
-				ServiceMethod: "Arith.Add",
-				Sequence:      1,
+				ClassMethod: "Arith.Add",
+				Sequence:    1,
 				Error: codec.Error{
-					Code:   int(codes.Unknown),
-					Desc:   codes.Unknown.String(),
-					Cause:  io.EOF.Error(),
-					Module: "testsvr",
+					Code:       int(codes.Unknown),
+					Desc:       codes.Unknown.String(),
+					Cause:      io.EOF.Error(),
+					ServerName: "testsvr",
 				},
 			},
 		},
 		{
 			req: codec.RequestHeader{
-				ServiceMethod: "Arith.Add",
-				Sequence:      1,
+				ClassMethod: "Arith.Add",
+				Sequence:    1,
 			},
 			reply: nil,
 			err:   NewError(codes.Internal, io.EOF),
 			resp: codec.ResponseHeader{
-				ServiceMethod: "Arith.Add",
-				Sequence:      1,
+				ClassMethod: "Arith.Add",
+				Sequence:    1,
 				Error: codec.Error{
-					Code:   int(codes.Internal),
-					Desc:   codes.Internal.String(),
-					Cause:  io.EOF.Error(),
-					Module: "testsvr",
+					Code:       int(codes.Internal),
+					Desc:       codes.Internal.String(),
+					Cause:      io.EOF.Error(),
+					ServerName: "testsvr",
 				},
 			},
 		},
 		{
 			req: codec.RequestHeader{
-				ServiceMethod: "Arith.Add",
-				Sequence:      1,
+				ClassMethod: "Arith.Add",
+				Sequence:    1,
 			},
 			reply: nil,
 			err:   NewModuleError("module1", codes.Internal, io.EOF),
 			resp: codec.ResponseHeader{
-				ServiceMethod: "Arith.Add",
-				Sequence:      1,
+				ClassMethod: "Arith.Add",
+				Sequence:    1,
 				Error: codec.Error{
-					Code:   int(codes.Internal),
-					Desc:   codes.Internal.String(),
-					Cause:  io.EOF.Error(),
-					Module: "module1",
+					Code:       int(codes.Internal),
+					Desc:       codes.Internal.String(),
+					Cause:      io.EOF.Error(),
+					ServerName: "module1",
 				},
 			},
 		},
@@ -630,9 +630,9 @@ func TestServerServeRequest(t *testing.T) {
 		respBody     interface{}
 	}{
 		{
-			reqHeader:  codec.RequestHeader{ServiceMethod: "Arith.Add", Sequence: 1},
+			reqHeader:  codec.RequestHeader{ClassMethod: "Arith.Add", Sequence: 1},
 			reqBody:    Args{1, 2},
-			respHeader: codec.ResponseHeader{ServiceMethod: "Arith.Add", Sequence: 1},
+			respHeader: codec.ResponseHeader{ClassMethod: "Arith.Add", Sequence: 1},
 			respBody:   &Reply{3},
 		},
 		{
@@ -643,32 +643,32 @@ func TestServerServeRequest(t *testing.T) {
 			respBody:     nil,
 		},
 		{
-			reqHeader: codec.RequestHeader{ServiceMethod: "Arith", Sequence: 1},
+			reqHeader: codec.RequestHeader{ClassMethod: "Arith", Sequence: 1},
 			reqBody:   Args{1, 2},
 			respHeader: codec.ResponseHeader{
-				ServiceMethod: "Arith",
-				Sequence:      1,
+				ClassMethod: "Arith",
+				Sequence:    1,
 				Error: codec.Error{
-					Code:   int(codes.InvalidHeader),
-					Desc:   codes.InvalidHeader.String(),
-					Cause:  fmt.Sprintf("service/method request ill-formed: %s", "Arith"),
-					Module: "TestServerServeCall",
+					Code:       int(codes.InvalidHeader),
+					Desc:       codes.InvalidHeader.String(),
+					Cause:      fmt.Sprintf("class/method request ill-formed: %s", "Arith"),
+					ServerName: "TestServerServeCall",
 				},
 			},
 			respBody: emptyResp,
 		},
 		{
-			reqHeader:  codec.RequestHeader{ServiceMethod: "Arith.Add", Sequence: 1},
+			reqHeader:  codec.RequestHeader{ClassMethod: "Arith.Add", Sequence: 1},
 			reqBodyErr: io.EOF,
 			reqBody:    Args{},
 			respHeader: codec.ResponseHeader{
-				ServiceMethod: "Arith.Add",
-				Sequence:      1,
+				ClassMethod: "Arith.Add",
+				Sequence:    1,
 				Error: codec.Error{
-					Code:   int(codes.InvalidRequest),
-					Desc:   codes.InvalidRequest.String(),
-					Cause:  io.EOF.Error(),
-					Module: "TestServerServeCall",
+					Code:       int(codes.InvalidRequest),
+					Desc:       codes.InvalidRequest.String(),
+					Cause:      io.EOF.Error(),
+					ServerName: "TestServerServeCall",
 				},
 			},
 			respBody: emptyResp,
@@ -708,31 +708,31 @@ func TestServerServeConn(t *testing.T) {
 	}{
 		{
 			reqHeader: codec.RequestHeader{
-				ServiceMethod: "Arith.Add",
-				Sequence:      1,
+				ClassMethod: "Arith.Add",
+				Sequence:    1,
 			},
 			reqBody: Args{1, 2},
 			respHeader: codec.ResponseHeader{
-				ServiceMethod: "Arith.Add",
-				Sequence:      1,
+				ClassMethod: "Arith.Add",
+				Sequence:    1,
 			},
 			respBody: &Reply{3},
 			reply:    &Reply{},
 		},
 		{
 			reqHeader: codec.RequestHeader{
-				ServiceMethod: "Arith.Add2",
-				Sequence:      2,
+				ClassMethod: "Arith.Add2",
+				Sequence:    2,
 			},
 			reqBody: Args{1, 2},
 			respHeader: codec.ResponseHeader{
-				ServiceMethod: "Arith.Add2",
-				Sequence:      2,
+				ClassMethod: "Arith.Add2",
+				Sequence:    2,
 				Error: codec.Error{
-					Code:   int(codes.InvalidHeader),
-					Desc:   codes.InvalidHeader.String(),
-					Cause:  "can't find method Arith.Add2",
-					Module: "TestServerServeConn",
+					Code:       int(codes.InvalidHeader),
+					Desc:       codes.InvalidHeader.String(),
+					Cause:      "can't find method Arith.Add2",
+					ServerName: "TestServerServeConn",
 				},
 			},
 			respBody: &Reply{},

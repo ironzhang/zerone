@@ -17,9 +17,9 @@ import (
 )
 
 type Server struct {
-	name       string
-	logger     traceLogger
-	serviceMap sync.Map
+	name     string
+	logger   traceLogger
+	classMap sync.Map
 }
 
 func NewServer(name string) *Server {
@@ -52,15 +52,15 @@ func (s *Server) register(rcvr interface{}, name string) error {
 		name = tname
 	}
 	if name == "" {
-		return fmt.Errorf("register: no service name for type %s", typ.Name())
+		return fmt.Errorf("register: no class name for type %s", typ.Name())
 	}
-	svc, err := parseService(name, val)
+	c, err := parseClass(name, val)
 	if err != nil {
-		return fmt.Errorf("register: parse service: %v", err)
+		return fmt.Errorf("register: parse class: %v", err)
 	}
 
-	if _, loaded := s.serviceMap.LoadOrStore(name, svc); loaded {
-		return fmt.Errorf("register: service already defined: %s", name)
+	if _, loaded := s.classMap.LoadOrStore(name, c); loaded {
+		return fmt.Errorf("register: class already defined: %s", name)
 	}
 	return nil
 }
@@ -73,25 +73,25 @@ func (s *Server) RegisterName(name string, rcvr interface{}) error {
 	return s.register(rcvr, name)
 }
 
-func splitServiceMethod(serviceMethod string) (string, string, error) {
-	dot := strings.LastIndex(serviceMethod, ".")
+func splitClassMethod(classMethod string) (string, string, error) {
+	dot := strings.LastIndex(classMethod, ".")
 	if dot < 0 {
-		return "", "", fmt.Errorf("service/method request ill-formed: %s", serviceMethod)
+		return "", "", fmt.Errorf("class/method request ill-formed: %s", classMethod)
 	}
-	return serviceMethod[:dot], serviceMethod[dot+1:], nil
+	return classMethod[:dot], classMethod[dot+1:], nil
 }
 
-func (s *Server) lookupServiceMethod(serviceName, methodName string) (reflect.Value, *method, error) {
-	svci, ok := s.serviceMap.Load(serviceName)
+func (s *Server) lookupClassMethod(className, methodName string) (reflect.Value, *method, error) {
+	v, ok := s.classMap.Load(className)
 	if !ok {
-		return reflect.Value{}, nil, fmt.Errorf("can't find service %s.%s", serviceName, methodName)
+		return reflect.Value{}, nil, fmt.Errorf("can't find class %s.%s", className, methodName)
 	}
-	svc := svci.(*service)
-	meth, ok := svc.methods[methodName]
+	c := v.(*class)
+	meth, ok := c.methods[methodName]
 	if !ok {
-		return reflect.Value{}, nil, fmt.Errorf("can't find method %s.%s", serviceName, methodName)
+		return reflect.Value{}, nil, fmt.Errorf("can't find method %s.%s", className, methodName)
 	}
-	return svc.rcvr, meth, nil
+	return c.rcvr, meth, nil
 }
 
 func (s *Server) readRequest(c codec.ServerCodec) (req *codec.RequestHeader, method reflect.Method, rcvr, args, reply reflect.Value, keepReading bool, err error) {
@@ -105,13 +105,13 @@ func (s *Server) readRequest(c codec.ServerCodec) (req *codec.RequestHeader, met
 	req = &h
 	keepReading = true
 
-	serviceName, methodName, err := splitServiceMethod(req.ServiceMethod)
+	className, methodName, err := splitClassMethod(req.ClassMethod)
 	if err != nil {
 		err = NewError(codes.InvalidHeader, err)
 		c.ReadRequestBody(nil)
 		return
 	}
-	rcvr, meth, err := s.lookupServiceMethod(serviceName, methodName)
+	rcvr, meth, err := s.lookupClassMethod(className, methodName)
 	if err != nil {
 		err = NewError(codes.InvalidHeader, err)
 		c.ReadRequestBody(nil)
@@ -153,7 +153,7 @@ func (s *Server) readRequest(c codec.ServerCodec) (req *codec.RequestHeader, met
 
 func (s *Server) writeResponse(c codec.ServerCodec, req *codec.RequestHeader, reply interface{}, err error) error {
 	var resp codec.ResponseHeader
-	resp.ServiceMethod = req.ServiceMethod
+	resp.ClassMethod = req.ClassMethod
 	resp.Sequence = req.Sequence
 	if err != nil {
 		code := codes.Unknown
@@ -176,7 +176,7 @@ func (s *Server) writeResponse(c codec.ServerCodec, req *codec.RequestHeader, re
 		resp.Error.Code = int(code)
 		resp.Error.Desc = code.String()
 		resp.Error.Cause = cause
-		resp.Error.Module = module
+		resp.Error.ServerName = module
 	}
 	return c.WriteResponse(&resp, reply)
 }
@@ -235,14 +235,14 @@ func (s *Server) rpcError(err error) error {
 var emptyResp = struct{}{}
 
 func (s *Server) serveError(c codec.ServerCodec, req *codec.RequestHeader, err error) {
-	tr := s.logger.NewTrace("Server", req.Verbose, req.TraceID, req.ClientName, req.ServiceMethod)
+	tr := s.logger.NewTrace("Server", req.Verbose, req.TraceID, req.ClientName, req.ClassMethod)
 	tr.PrintRequest(nil)
 	s.writeResponse(c, req, emptyResp, err)
 	tr.PrintResponse(s.rpcError(err), emptyResp)
 }
 
 func (s *Server) serveCall(c codec.ServerCodec, req *codec.RequestHeader, method reflect.Method, rcvr, args, reply reflect.Value) {
-	tr := s.logger.NewTrace("Server", req.Verbose, req.TraceID, req.ClientName, req.ServiceMethod)
+	tr := s.logger.NewTrace("Server", req.Verbose, req.TraceID, req.ClientName, req.ClassMethod)
 	tr.PrintRequest(args.Interface())
 	err := s.call(method, rcvr, args, reply)
 	s.writeResponse(c, req, reply.Interface(), err)

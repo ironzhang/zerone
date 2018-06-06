@@ -62,12 +62,12 @@ func TestClientReadResponseCorrect(t *testing.T) {
 		reply  interface{}
 	}{
 		{
-			header: codec.ResponseHeader{ServiceMethod: "Arith.Add", Sequence: 1},
+			header: codec.ResponseHeader{ClassMethod: "Arith.Add", Sequence: 1},
 			body:   &Reply{3},
 			reply:  &Reply{},
 		},
 		{
-			header: codec.ResponseHeader{ServiceMethod: "Arith.Div", Sequence: 1},
+			header: codec.ResponseHeader{ClassMethod: "Arith.Div", Sequence: 1},
 			body:   &Reply{3},
 			reply:  &Reply{},
 		},
@@ -104,14 +104,14 @@ func TestClientReadResponseError(t *testing.T) {
 			expectErr: io.EOF,
 		},
 		{
-			header:    codec.ResponseHeader{ServiceMethod: "Arith.Add", Sequence: 1},
+			header:    codec.ResponseHeader{ClassMethod: "Arith.Add", Sequence: 1},
 			bodyErr:   io.ErrUnexpectedEOF,
 			expectErr: io.ErrUnexpectedEOF,
 		},
 		{
 			header: codec.ResponseHeader{
-				ServiceMethod: "Arith.Add",
-				Sequence:      1,
+				ClassMethod: "Arith.Add",
+				Sequence:    1,
 				Error: codec.Error{
 					Code:  int(codes.Internal),
 					Desc:  codes.Internal.String(),
@@ -188,22 +188,22 @@ func TestClientReading(t *testing.T) {
 
 func TestClientCall(t *testing.T) {
 	tests := []struct {
-		serviceMethod string
-		args          interface{}
-		reply         interface{}
-		result        interface{}
+		classMethod string
+		args        interface{}
+		reply       interface{}
+		result      interface{}
 	}{
 		{
-			serviceMethod: "Arith.Add",
-			args:          Args{1, 2},
-			reply:         &Reply{},
-			result:        &Reply{3},
+			classMethod: "Arith.Add",
+			args:        Args{1, 2},
+			reply:       &Reply{},
+			result:      &Reply{3},
 		},
 		{
-			serviceMethod: "Arith.Div",
-			args:          Args{10, 2},
-			reply:         &Reply{},
-			result:        &Reply{5},
+			classMethod: "Arith.Div",
+			args:        Args{10, 2},
+			reply:       &Reply{},
+			result:      &Reply{5},
 		},
 	}
 
@@ -214,7 +214,7 @@ func TestClientCall(t *testing.T) {
 		for _, tt := range tests {
 			serverCodec.ReadRequestHeader(&req)
 			serverCodec.ReadRequestBody(nil)
-			resp.ServiceMethod = req.ServiceMethod
+			resp.ClassMethod = req.ClassMethod
 			resp.Sequence = req.Sequence
 			serverCodec.WriteResponse(&resp, tt.result)
 		}
@@ -222,12 +222,12 @@ func TestClientCall(t *testing.T) {
 	client := NewClientWithCodec("client", clientCodec)
 	defer client.Close()
 	for _, tt := range tests {
-		if err := client.Call(context.Background(), tt.serviceMethod, tt.args, tt.reply, 0); err != nil {
-			t.Fatalf("call %q: %v", tt.serviceMethod, err)
+		if err := client.Call(context.Background(), tt.classMethod, tt.args, tt.reply, 0); err != nil {
+			t.Fatalf("call %q: %v", tt.classMethod, err)
 		}
 		if got, want := tt.reply, tt.result; !reflect.DeepEqual(got, want) {
-			t.Fatalf("call %q reply: %v != %v", tt.serviceMethod, got, want)
+			t.Fatalf("call %q reply: %v != %v", tt.classMethod, got, want)
 		}
-		t.Logf("call %q success, args=%v, reply=%v", tt.serviceMethod, tt.args, tt.reply)
+		t.Logf("call %q success, args=%v, reply=%v", tt.classMethod, tt.args, tt.reply)
 	}
 }

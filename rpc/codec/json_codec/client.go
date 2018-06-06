@@ -30,7 +30,7 @@ func NewClientCodec(rwc io.ReadWriteCloser) *ClientCodec {
 func (c *ClientCodec) WriteRequest(h *codec.RequestHeader, x interface{}) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.req.ServiceMethod = h.ServiceMethod
+	c.req.ClassMethod = h.ClassMethod
 	c.req.Sequence = h.Sequence
 	c.req.TraceID = h.TraceID
 	c.req.ClientName = h.ClientName
@@ -40,12 +40,12 @@ func (c *ClientCodec) WriteRequest(h *codec.RequestHeader, x interface{}) error 
 }
 
 func (c *ClientCodec) reset() {
-	c.resp.ServiceMethod = ""
+	c.resp.ClassMethod = ""
 	c.resp.Sequence = 0
 	c.resp.Code = 0
 	c.resp.Cause = ""
 	c.resp.Desc = ""
-	c.resp.Module = ""
+	c.resp.ServerName = ""
 	c.resp.Body = nil
 }
 
@@ -56,12 +56,12 @@ func (c *ClientCodec) ReadResponseHeader(h *codec.ResponseHeader) error {
 		return err
 	}
 
-	h.ServiceMethod = c.resp.ServiceMethod
+	h.ClassMethod = c.resp.ClassMethod
 	h.Sequence = c.resp.Sequence
 	h.Error.Code = c.resp.Code
 	h.Error.Cause = c.resp.Cause
 	h.Error.Desc = c.resp.Desc
-	h.Error.Module = c.resp.Module
+	h.Error.ServerName = c.resp.ServerName
 	return nil
 }
 

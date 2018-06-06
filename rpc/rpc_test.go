@@ -196,7 +196,7 @@ func TestGo(t *testing.T) {
 	}
 	for range tests {
 		call := <-done
-		t.Logf("%q: error=%v, reply=%v", call.Header.ServiceMethod, call.Error, call.Reply)
+		t.Logf("%q: error=%v, reply=%v", call.Header.ClassMethod, call.Error, call.Reply)
 	}
 }
 

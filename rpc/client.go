@@ -125,7 +125,7 @@ func (c *Client) readResponse() (keepReading bool, err error) {
 
 	if resp.Error.Code != 0 {
 		err = c.codec.ReadResponseBody(nil)
-		call.Error = ModuleErrorf(resp.Error.Module, codes.Code(resp.Error.Code), resp.Error.Cause)
+		call.Error = ModuleErrorf(resp.Error.ServerName, codes.Code(resp.Error.Code), resp.Error.Cause)
 		call.done()
 		return true, err
 	}
@@ -171,7 +171,7 @@ func (c *Client) send(call *Call) (err error) {
 	return nil
 }
 
-func (c *Client) Go(ctx context.Context, serviceMethod string, args interface{}, reply interface{}, done chan *Call) (*Call, error) {
+func (c *Client) Go(ctx context.Context, classMethod string, args interface{}, reply interface{}, done chan *Call) (*Call, error) {
 	if c.IsShutdown() {
 		return nil, ErrShutdown
 	}
@@ -196,16 +196,16 @@ func (c *Client) Go(ctx context.Context, serviceMethod string, args interface{},
 
 	call := &Call{
 		Header: codec.RequestHeader{
-			ServiceMethod: serviceMethod,
-			Sequence:      sequence,
-			ClientName:    c.name,
-			TraceID:       traceID,
-			Verbose:       verbose,
+			ClassMethod: classMethod,
+			Sequence:    sequence,
+			ClientName:  c.name,
+			TraceID:     traceID,
+			Verbose:     verbose,
 		},
 		Args:  args,
 		Reply: reply,
 		Done:  done,
-		trace: c.logger.NewTrace("Client", verbose, traceID, c.name, serviceMethod),
+		trace: c.logger.NewTrace("Client", verbose, traceID, c.name, classMethod),
 	}
 	if err := c.send(call); err != nil {
 		return nil, err
@@ -213,8 +213,8 @@ func (c *Client) Go(ctx context.Context, serviceMethod string, args interface{},
 	return call, nil
 }
 
-func (c *Client) Call(ctx context.Context, serviceMethod string, args interface{}, reply interface{}, timeout time.Duration) error {
-	call, err := c.Go(ctx, serviceMethod, args, reply, make(chan *Call, 1))
+func (c *Client) Call(ctx context.Context, classMethod string, args interface{}, reply interface{}, timeout time.Duration) error {
+	call, err := c.Go(ctx, classMethod, args, reply, make(chan *Call, 1))
 	if err != nil {
 		return err
 	}

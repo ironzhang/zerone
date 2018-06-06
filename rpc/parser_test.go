@@ -259,7 +259,7 @@ func TestSuitableMethods(t *testing.T) {
 	}
 }
 
-func TestParseServiceCorrect(t *testing.T) {
+func TestParseClassCorrect(t *testing.T) {
 	tests := []struct {
 		rcvr interface{}
 		mnum int
@@ -269,7 +269,7 @@ func TestParseServiceCorrect(t *testing.T) {
 	for _, tt := range tests {
 		typ := reflect.TypeOf(tt.rcvr)
 		val := reflect.ValueOf(tt.rcvr)
-		svc, err := parseService(typ.Name(), val)
+		svc, err := parseClass(typ.Name(), val)
 		if err != nil {
 			t.Fatalf("parseService: %v", err)
 		}
@@ -286,14 +286,14 @@ func TestParseServiceCorrect(t *testing.T) {
 	}
 }
 
-func TestParseServiceError(t *testing.T) {
+func TestParseClassError(t *testing.T) {
 	tests := []interface{}{
 		ill{},
 	}
 	for _, rcvr := range tests {
 		typ := reflect.TypeOf(rcvr)
 		val := reflect.ValueOf(rcvr)
-		if _, err := parseService(typ.Name(), val); err == nil {
+		if _, err := parseClass(typ.Name(), val); err == nil {
 			t.Fatalf("parseService: return error is nil")
 		} else {
 			t.Logf("parseService: %v", err)

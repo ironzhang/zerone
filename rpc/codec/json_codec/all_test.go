@@ -23,28 +23,28 @@ type Reply struct {
 func TestRequest(t *testing.T) {
 	tests := []clientRequest{
 		{
-			ServiceMethod: "Add",
-			Sequence:      1,
-			TraceID:       "1",
-			ClientName:    "client-1",
-			Verbose:       1,
-			Body:          &Args{A: 1, B: 2},
+			ClassMethod: "Add",
+			Sequence:    1,
+			TraceID:     "1",
+			ClientName:  "client-1",
+			Verbose:     1,
+			Body:        &Args{A: 1, B: 2},
 		},
 		{
-			ServiceMethod: "Ping",
-			Sequence:      1,
-			TraceID:       "1",
-			ClientName:    "client-1",
-			Verbose:       1,
-			Body:          "hello",
+			ClassMethod: "Ping",
+			Sequence:    1,
+			TraceID:     "1",
+			ClientName:  "client-1",
+			Verbose:     1,
+			Body:        "hello",
 		},
 		{
-			ServiceMethod: "Ping",
-			Sequence:      1,
-			TraceID:       "1",
-			ClientName:    "client-1",
-			Verbose:       1,
-			Body:          nil,
+			ClassMethod: "Ping",
+			Sequence:    1,
+			TraceID:     "1",
+			ClientName:  "client-1",
+			Verbose:     1,
+			Body:        nil,
 		},
 	}
 	for i, creq := range tests {
@@ -61,7 +61,7 @@ func TestRequest(t *testing.T) {
 			t.Fatalf("case%d: marshal body: %v", i, err)
 		}
 
-		if got, want := sreq.ServiceMethod, creq.ServiceMethod; got != want {
+		if got, want := sreq.ClassMethod, creq.ClassMethod; got != want {
 			t.Fatalf("case%d: ServiceMethod: %v != %v", i, got, want)
 		}
 		if got, want := sreq.Sequence, creq.Sequence; got != want {
@@ -87,28 +87,28 @@ func TestRequest(t *testing.T) {
 func TestResponse(t *testing.T) {
 	tests := []serverResponse{
 		{
-			ServiceMethod: "Add",
-			Sequence:      1,
-			Code:          0,
-			Cause:         "",
-			Desc:          "",
-			Module:        "",
-			Body:          &Reply{C: 3},
+			ClassMethod: "Add",
+			Sequence:    1,
+			Code:        0,
+			Cause:       "",
+			Desc:        "",
+			ServerName:  "",
+			Body:        &Reply{C: 3},
 		},
 		{
-			ServiceMethod: "Add",
-			Sequence:      1,
-			Code:          1,
-			Cause:         "Message",
-			Desc:          "Description",
-			Module:        "ServerName",
-			Body:          nil,
+			ClassMethod: "Add",
+			Sequence:    1,
+			Code:        1,
+			Cause:       "Message",
+			Desc:        "Description",
+			ServerName:  "ServerName",
+			Body:        nil,
 		},
 		{
-			ServiceMethod: "Ping",
-			Sequence:      2,
-			Code:          0,
-			Body:          "hello",
+			ClassMethod: "Ping",
+			Sequence:    2,
+			Code:        0,
+			Body:        "hello",
 		},
 	}
 	for i, sresp := range tests {
@@ -125,7 +125,7 @@ func TestResponse(t *testing.T) {
 			t.Fatalf("case%d: json marshal body: %v", i, err)
 		}
 
-		if got, want := cresp.ServiceMethod, sresp.ServiceMethod; got != want {
+		if got, want := cresp.ClassMethod, sresp.ClassMethod; got != want {
 			t.Fatalf("case%d: ServiceMethod: %v != %v", i, got, want)
 		}
 		if got, want := cresp.Sequence, sresp.Sequence; got != want {
@@ -140,7 +140,7 @@ func TestResponse(t *testing.T) {
 		if got, want := cresp.Desc, sresp.Desc; got != want {
 			t.Fatalf("case%d: Description: %v != %v", i, got, want)
 		}
-		if got, want := cresp.Module, sresp.Module; got != want {
+		if got, want := cresp.ServerName, sresp.ServerName; got != want {
 			t.Fatalf("case%d: ServerName: %v != %v", i, got, want)
 		}
 		if sresp.Body != nil {
@@ -196,44 +196,44 @@ func TestWriteReadRequest(t *testing.T) {
 	}{
 		{
 			h: codec.RequestHeader{
-				ServiceMethod: "Add",
-				Sequence:      1,
-				TraceID:       "1",
-				ClientName:    "client-1",
-				Verbose:       1,
+				ClassMethod: "Add",
+				Sequence:    1,
+				TraceID:     "1",
+				ClientName:  "client-1",
+				Verbose:     1,
 			},
 			x: &Args{A: 1, B: 2},
 			y: &Args{},
 		},
 		{
 			h: codec.RequestHeader{
-				ServiceMethod: "Add",
-				Sequence:      1,
-				TraceID:       "1",
-				ClientName:    "client-1",
-				Verbose:       1,
+				ClassMethod: "Add",
+				Sequence:    1,
+				TraceID:     "1",
+				ClientName:  "client-1",
+				Verbose:     1,
 			},
 			x: nil,
 			y: nil,
 		},
 		{
 			h: codec.RequestHeader{
-				ServiceMethod: "Ping",
-				Sequence:      2,
-				TraceID:       "2",
-				ClientName:    "client-2",
-				Verbose:       0,
+				ClassMethod: "Ping",
+				Sequence:    2,
+				TraceID:     "2",
+				ClientName:  "client-2",
+				Verbose:     0,
 			},
 			x: &s1,
 			y: &s2,
 		},
 		{
 			h: codec.RequestHeader{
-				ServiceMethod: "Ping",
-				Sequence:      3,
-				TraceID:       "3",
-				ClientName:    "client-3",
-				Verbose:       0,
+				ClassMethod: "Ping",
+				Sequence:    3,
+				TraceID:     "3",
+				ClientName:  "client-3",
+				Verbose:     0,
 			},
 			x: nil,
 			y: nil,
@@ -280,21 +280,21 @@ func TestWriteReadResponse(t *testing.T) {
 	}{
 		{
 			h: codec.ResponseHeader{
-				ServiceMethod: "Add",
-				Sequence:      1,
+				ClassMethod: "Add",
+				Sequence:    1,
 			},
 			x: &Reply{C: 3},
 			y: &Reply{},
 		},
 		{
 			h: codec.ResponseHeader{
-				ServiceMethod: "Add",
-				Sequence:      1,
+				ClassMethod: "Add",
+				Sequence:    1,
 				Error: codec.Error{
-					Code:   1,
-					Cause:  "Message",
-					Desc:   "Description",
-					Module: "ServerName",
+					Code:       1,
+					Cause:      "Message",
+					Desc:       "Description",
+					ServerName: "ServerName",
 				},
 			},
 			x: nil,
@@ -302,21 +302,21 @@ func TestWriteReadResponse(t *testing.T) {
 		},
 		{
 			h: codec.ResponseHeader{
-				ServiceMethod: "Ping",
-				Sequence:      2,
+				ClassMethod: "Ping",
+				Sequence:    2,
 			},
 			x: &s1,
 			y: &s2,
 		},
 		{
 			h: codec.ResponseHeader{
-				ServiceMethod: "Ping",
-				Sequence:      3,
+				ClassMethod: "Ping",
+				Sequence:    3,
 				Error: codec.Error{
-					Code:   1,
-					Cause:  "Message",
-					Desc:   "Description",
-					Module: "ServerName",
+					Code:       1,
+					Cause:      "Message",
+					Desc:       "Description",
+					ServerName: "ServerName",
 				},
 			},
 			x: nil,
