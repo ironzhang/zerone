@@ -513,7 +513,7 @@ func TestServerWriteResponse(t *testing.T) {
 				Sequence:    1,
 			},
 			reply: nil,
-			err:   NewModuleError("module1", codes.Internal, io.EOF),
+			err:   NewServerError("module1", codes.Internal, io.EOF),
 			resp: codec.ResponseHeader{
 				ClassMethod: "Arith.Add",
 				Sequence:    1,

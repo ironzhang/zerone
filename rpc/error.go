@@ -6,8 +6,8 @@ import (
 	"github.com/ironzhang/zerone/rpc/codes"
 )
 
-type ErrorModule interface {
-	Module() string
+type ErrorServer interface {
+	Server() string
 }
 
 type ErrorCode interface {
@@ -19,7 +19,7 @@ type ErrorCause interface {
 }
 
 type rpcError struct {
-	module string
+	server string
 	code   codes.Code
 	cause  error
 }
@@ -38,28 +38,28 @@ func Errorf(code codes.Code, format string, a ...interface{}) error {
 	}
 }
 
-func NewModuleError(module string, code codes.Code, cause error) error {
+func NewServerError(server string, code codes.Code, cause error) error {
 	return rpcError{
-		module: module,
+		server: server,
 		code:   code,
 		cause:  cause,
 	}
 }
 
-func ModuleErrorf(module string, code codes.Code, format string, a ...interface{}) error {
+func ServerErrorf(server string, code codes.Code, format string, a ...interface{}) error {
 	return rpcError{
-		module: module,
+		server: server,
 		code:   code,
 		cause:  fmt.Errorf(format, a...),
 	}
 }
 
-func (e rpcError) Module() string {
-	if e.module != "" {
-		return e.module
+func (e rpcError) Server() string {
+	if e.server != "" {
+		return e.server
 	}
-	if me, ok := e.cause.(ErrorModule); ok {
-		return me.Module()
+	if me, ok := e.cause.(ErrorServer); ok {
+		return me.Server()
 	}
 	return ""
 }
@@ -73,8 +73,8 @@ func (e rpcError) Cause() error {
 }
 
 func (e rpcError) Error() string {
-	if e.module == "" {
+	if e.server == "" {
 		return fmt.Sprintf("{code: %d, desc: %s, cause: %v}", e.code, e.code.String(), e.cause)
 	}
-	return fmt.Sprintf("{module: %s, code: %d, desc: %s, cause: %v}", e.module, e.code, e.code.String(), e.cause)
+	return fmt.Sprintf("{server: %s, code: %d, desc: %s, cause: %v}", e.server, e.code, e.code.String(), e.cause)
 }

@@ -125,7 +125,7 @@ func (c *Client) readResponse() (keepReading bool, err error) {
 
 	if resp.Error.Code != 0 {
 		err = c.codec.ReadResponseBody(nil)
-		call.Error = ModuleErrorf(resp.Error.ServerName, codes.Code(resp.Error.Code), resp.Error.Cause)
+		call.Error = ServerErrorf(resp.Error.ServerName, codes.Code(resp.Error.Code), resp.Error.Cause)
 		call.done()
 		return true, err
 	}

@@ -166,17 +166,17 @@ func (s *Server) writeResponse(c codec.ServerCodec, req *codec.RequestHeader, re
 				cause = ce.Error()
 			}
 		}
-		module := s.name
-		if e, ok := err.(ErrorModule); ok {
-			if m := e.Module(); m != "" {
-				module = m
+		name := s.name
+		if e, ok := err.(ErrorServer); ok {
+			if sn := e.Server(); sn != "" {
+				name = sn
 			}
 		}
 
 		resp.Error.Code = int(code)
 		resp.Error.Desc = code.String()
 		resp.Error.Cause = cause
-		resp.Error.ServerName = module
+		resp.Error.ServerName = name
 	}
 	return c.WriteResponse(&resp, reply)
 }
@@ -207,15 +207,15 @@ func (s *Server) rpcError(err error) error {
 	}
 
 	if e, ok := err.(rpcError); ok {
-		if e.module == "" {
-			e.module = s.name
+		if e.server == "" {
+			e.server = s.name
 		}
 		return e
 	}
 
 	module := s.name
-	if e, ok := err.(ErrorModule); ok {
-		if m := e.Module(); m != "" {
+	if e, ok := err.(ErrorServer); ok {
+		if m := e.Server(); m != "" {
 			module = m
 		}
 	}
@@ -229,7 +229,7 @@ func (s *Server) rpcError(err error) error {
 			cause = ce.Error()
 		}
 	}
-	return ModuleErrorf(module, code, cause)
+	return ServerErrorf(module, code, cause)
 }
 
 var emptyResp = struct{}{}

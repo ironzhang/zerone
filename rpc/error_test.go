@@ -19,8 +19,8 @@ func TestNewError(t *testing.T) {
 	}
 	for _, tt := range tests {
 		err := NewError(tt.code, tt.cause)
-		emodule := err.(ErrorModule)
-		if got, want := emodule.Module(), ""; got != want {
+		emodule := err.(ErrorServer)
+		if got, want := emodule.Server(), ""; got != want {
 			t.Errorf("module: %q != %q", got, want)
 		}
 		ecode := err.(ErrorCode)
@@ -46,8 +46,8 @@ func TestErrorf(t *testing.T) {
 	}
 	for _, tt := range tests {
 		err := Errorf(tt.code, tt.format, tt.args...)
-		emodule := err.(ErrorModule)
-		if got, want := emodule.Module(), ""; got != want {
+		emodule := err.(ErrorServer)
+		if got, want := emodule.Server(), ""; got != want {
 			t.Errorf("module: %q != %q", got, want)
 		}
 		ecode := err.(ErrorCode)
@@ -72,9 +72,9 @@ func TestNewModuleError(t *testing.T) {
 		{module: "module2", code: codes.Code(2), cause: errors.New("code2 error")},
 	}
 	for _, tt := range tests {
-		err := NewModuleError(tt.module, tt.code, tt.cause)
-		emodule := err.(ErrorModule)
-		if got, want := emodule.Module(), tt.module; got != want {
+		err := NewServerError(tt.module, tt.code, tt.cause)
+		emodule := err.(ErrorServer)
+		if got, want := emodule.Server(), tt.module; got != want {
 			t.Errorf("module: %q != %q", got, want)
 		}
 		ecode := err.(ErrorCode)
@@ -100,9 +100,9 @@ func TestModuleErrorf(t *testing.T) {
 		{module: "module1", code: codes.Code(2), format: "code(%d) error", args: []interface{}{2}},
 	}
 	for _, tt := range tests {
-		err := ModuleErrorf(tt.module, tt.code, tt.format, tt.args...)
-		emodule := err.(ErrorModule)
-		if got, want := emodule.Module(), tt.module; got != want {
+		err := ServerErrorf(tt.module, tt.code, tt.format, tt.args...)
+		emodule := err.(ErrorServer)
+		if got, want := emodule.Server(), tt.module; got != want {
 			t.Errorf("module: %q != %q", got, want)
 		}
 		ecode := err.(ErrorCode)
@@ -118,8 +118,8 @@ func TestModuleErrorf(t *testing.T) {
 }
 
 func getErrorModule(err error) string {
-	if e, ok := err.(ErrorModule); ok {
-		return e.Module()
+	if e, ok := err.(ErrorServer); ok {
+		return e.Server()
 	}
 	return ""
 }
@@ -158,13 +158,13 @@ func TestErrors(t *testing.T) {
 			cause:  "read: " + io.EOF.Error(),
 		},
 		{
-			err:    NewModuleError("module1", codes.Internal, io.EOF),
+			err:    NewServerError("module1", codes.Internal, io.EOF),
 			module: "module1",
 			code:   codes.Internal,
 			cause:  io.EOF.Error(),
 		},
 		{
-			err:    ModuleErrorf("module1", codes.Internal, "read: %v", io.EOF),
+			err:    ServerErrorf("module1", codes.Internal, "read: %v", io.EOF),
 			module: "module1",
 			code:   codes.Internal,
 			cause:  "read: " + io.EOF.Error(),
@@ -182,22 +182,22 @@ func TestErrors(t *testing.T) {
 			cause:  NewError(codes.Internal, io.EOF).Error(),
 		},
 		{
-			err:    NewModuleError("module1", codes.InvalidRequest, NewError(codes.Internal, io.EOF)),
+			err:    NewServerError("module1", codes.InvalidRequest, NewError(codes.Internal, io.EOF)),
 			module: "module1",
 			code:   codes.InvalidRequest,
 			cause:  NewError(codes.Internal, io.EOF).Error(),
 		},
 		{
-			err:    NewModuleError("module1", codes.InvalidRequest, NewModuleError("module2", codes.Internal, io.EOF)),
+			err:    NewServerError("module1", codes.InvalidRequest, NewServerError("module2", codes.Internal, io.EOF)),
 			module: "module1",
 			code:   codes.InvalidRequest,
-			cause:  NewModuleError("module2", codes.Internal, io.EOF).Error(),
+			cause:  NewServerError("module2", codes.Internal, io.EOF).Error(),
 		},
 		{
-			err:    NewError(codes.InvalidRequest, NewModuleError("module2", codes.Internal, io.EOF)),
+			err:    NewError(codes.InvalidRequest, NewServerError("module2", codes.Internal, io.EOF)),
 			module: "module2",
 			code:   codes.InvalidRequest,
-			cause:  NewModuleError("module2", codes.Internal, io.EOF).Error(),
+			cause:  NewServerError("module2", codes.Internal, io.EOF).Error(),
 		},
 	}
 	for _, tt := range tests {
