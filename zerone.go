@@ -81,11 +81,7 @@ func (p *DZerone) NewServer(name, service string) (*zserver.Server, error) {
 	return zserver.New(name, service, p.driver), nil
 }
 
-type Options struct {
-	Zerone string
-	SOptions
-	DOptions
-}
+type Options interface{}
 
 type Zerone interface {
 	NewClient(name, service string) (*zclient.Client, error)
@@ -94,12 +90,16 @@ type Zerone interface {
 }
 
 func NewZerone(opts Options) (Zerone, error) {
-	switch opts.Zerone {
-	case "SZerone":
-		return NewSZerone(opts.SOptions)
-	case "DZerone":
-		return NewDZerone(opts.DOptions)
+	switch o := opts.(type) {
+	case SOptions:
+		return NewSZerone(o)
+	case *SOptions:
+		return NewSZerone(*o)
+	case DOptions:
+		return NewDZerone(o)
+	case *DOptions:
+		return NewDZerone(*o)
 	default:
-		return nil, fmt.Errorf("unknown zerone(%s)", opts.Zerone)
+		return nil, fmt.Errorf("unknown %T options type", opts)
 	}
 }

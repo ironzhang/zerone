@@ -1,0 +1,6 @@
+{
+	"Zerone": "DZerone",
+	"Filename": "",
+	"Namespace": "zerone",
+	"Endpoints": ["http://127.0.0.1:2379"]
+}
