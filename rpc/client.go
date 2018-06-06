@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -16,6 +15,7 @@ import (
 	"github.com/ironzhang/zerone/rpc/codec"
 	"github.com/ironzhang/zerone/rpc/codec/json_codec"
 	"github.com/ironzhang/zerone/rpc/codes"
+	"github.com/ironzhang/zerone/rpc/trace"
 )
 
 var (
@@ -31,12 +31,12 @@ type Call struct {
 	Error  error
 	Done   chan *Call
 
-	trace trace
+	trace trace.Trace
 }
 
 func (c *Call) done() {
 	if c.trace != nil {
-		c.trace.PrintResponse(c.Error, c.Reply)
+		c.trace.Response(c.Error, c.Reply)
 	}
 	select {
 	case c.Done <- c:
@@ -51,7 +51,7 @@ func (c *Call) send(codec codec.ClientCodec) error {
 		return err
 	}
 	if c.trace != nil {
-		c.trace.PrintRequest(c.Args)
+		c.trace.Request(c.Args)
 	}
 	return nil
 }
@@ -59,7 +59,7 @@ func (c *Call) send(codec codec.ClientCodec) error {
 type Client struct {
 	name   string
 	codec  codec.ClientCodec
-	logger traceLogger
+	logger *trace.Logger
 
 	pending     sync.Map
 	sequence    uint64
@@ -83,13 +83,13 @@ func NewClientWithCodec(name string, c codec.ClientCodec) *Client {
 	client := &Client{
 		name:   name,
 		codec:  c,
-		logger: traceLogger{out: os.Stdout, verbose: 0},
+		logger: trace.NewLogger(),
 	}
 	go client.reading()
 	return client
 }
 
-func (c *Client) SetTraceOutput(out io.Writer) {
+func (c *Client) SetTraceOutput(out trace.Output) {
 	c.logger.SetOutput(out)
 }
 
@@ -205,7 +205,7 @@ func (c *Client) Go(ctx context.Context, classMethod string, args interface{}, r
 		Args:  args,
 		Reply: reply,
 		Done:  done,
-		trace: c.logger.NewTrace("Client", verbose, traceID, c.name, classMethod),
+		trace: c.logger.NewTrace(false, verbose, traceID, c.name, "", "", "", classMethod),
 	}
 	if err := c.send(call); err != nil {
 		return nil, err

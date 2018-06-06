@@ -1,5 +1,6 @@
 package rpc
 
+/*
 import (
 	"fmt"
 	"io"
@@ -92,3 +93,4 @@ func TestTraceLogger(t *testing.T) {
 		tr.PrintResponse(io.EOF, Reply{3})
 	}
 }
+*/

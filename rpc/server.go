@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"os"
 	"reflect"
 	"strings"
 	"sync"
@@ -14,22 +13,23 @@ import (
 	"github.com/ironzhang/zerone/rpc/codec"
 	"github.com/ironzhang/zerone/rpc/codec/json_codec"
 	"github.com/ironzhang/zerone/rpc/codes"
+	"github.com/ironzhang/zerone/rpc/trace"
 )
 
 type Server struct {
 	name     string
-	logger   traceLogger
+	logger   *trace.Logger
 	classMap sync.Map
 }
 
 func NewServer(name string) *Server {
 	return &Server{
 		name:   name,
-		logger: traceLogger{out: os.Stdout, verbose: 0},
+		logger: trace.NewLogger(),
 	}
 }
 
-func (s *Server) SetTraceOutput(out io.Writer) {
+func (s *Server) SetTraceOutput(out trace.Output) {
 	s.logger.SetOutput(out)
 }
 
@@ -235,18 +235,18 @@ func (s *Server) rpcError(err error) error {
 var emptyResp = struct{}{}
 
 func (s *Server) serveError(c codec.ServerCodec, req *codec.RequestHeader, err error) {
-	tr := s.logger.NewTrace("Server", req.Verbose, req.TraceID, req.ClientName, req.ClassMethod)
-	tr.PrintRequest(nil)
+	tr := s.logger.NewTrace(true, req.Verbose, req.TraceID, req.ClientName, "", s.name, "", req.ClassMethod)
+	tr.Request(nil)
 	s.writeResponse(c, req, emptyResp, err)
-	tr.PrintResponse(s.rpcError(err), emptyResp)
+	tr.Response(s.rpcError(err), emptyResp)
 }
 
 func (s *Server) serveCall(c codec.ServerCodec, req *codec.RequestHeader, method reflect.Method, rcvr, args, reply reflect.Value) {
-	tr := s.logger.NewTrace("Server", req.Verbose, req.TraceID, req.ClientName, req.ClassMethod)
-	tr.PrintRequest(args.Interface())
+	tr := s.logger.NewTrace(true, req.Verbose, req.TraceID, req.ClientName, "", s.name, "", req.ClassMethod)
+	tr.Request(args.Interface())
 	err := s.call(method, rcvr, args, reply)
 	s.writeResponse(c, req, reply.Interface(), err)
-	tr.PrintResponse(s.rpcError(err), reply.Interface())
+	tr.Response(s.rpcError(err), reply.Interface())
 }
 
 func (s *Server) ServeRequest(c codec.ServerCodec) error {

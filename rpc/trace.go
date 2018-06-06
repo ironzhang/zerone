@@ -1,5 +1,6 @@
 package rpc
 
+/*
 import (
 	"bytes"
 	"encoding/json"
@@ -152,3 +153,4 @@ func max(x, y int) int {
 		return y
 	}
 }
+*/
