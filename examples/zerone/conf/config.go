@@ -34,6 +34,6 @@ func (c ZeroneConfig) ZeroneOptions() (zerone.Options, error) {
 			Config:    client.Config{Endpoints: c.Endpoints},
 		}, nil
 	default:
-		return nil, fmt.Errorf("unknown zerone(%s)", c.Zerone)
+		return nil, fmt.Errorf("unknown %q zerone", c.Zerone)
 	}
 }

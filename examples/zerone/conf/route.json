@@ -1,0 +1,10 @@
+{
+	"Arith": [
+		{
+			"Name": "S1",
+			"Net": "tcp",
+			"Addr": "localhost:8000",
+			"Load": 0
+		}
+	]
+}

@@ -1,6 +1,6 @@
 {
-	"Zerone": "DZerone",
-	"Filename": "",
+	"Zerone": "SZerone",
+	"Filename": "../conf/route.json",
 	"Namespace": "zerone",
 	"Endpoints": ["http://127.0.0.1:2379"]
 }
