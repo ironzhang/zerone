@@ -190,7 +190,7 @@ func TestGo(t *testing.T) {
 	}
 	done := make(chan *rpc.Call, len(tests))
 	for i, tt := range tests {
-		_, err := c.Go(context.Background(), tt.serviceMethod, tt.args, tt.reply, done)
+		_, err := c.Go(context.Background(), tt.serviceMethod, tt.args, tt.reply, 0, done)
 		if err != nil {
 			t.Fatalf("case%d: call: %v", i, err)
 		}

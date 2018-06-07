@@ -92,7 +92,7 @@ func (c *Client) WithFailPolicy(policy FailPolicy) *Client {
 	return nc
 }
 
-func (c *Client) Go(ctx context.Context, key []byte, method string, args, res interface{}, done chan *rpc.Call) (*rpc.Call, error) {
+func (c *Client) Go(ctx context.Context, key []byte, method string, args, res interface{}, timeout time.Duration, done chan *rpc.Call) (*rpc.Call, error) {
 	if atomic.LoadInt32(c.shutdown) == 1 {
 		return nil, rpc.ErrShutdown
 	}
@@ -103,28 +103,17 @@ func (c *Client) Go(ctx context.Context, key []byte, method string, args, res in
 		if err != nil {
 			return nil, err
 		}
-		return rc.Go(ctx, method, args, res, done)
+		return rc.Go(ctx, method, args, res, timeout, done)
 	})
 }
 
 func (c *Client) Call(ctx context.Context, key []byte, method string, args, res interface{}, timeout time.Duration) error {
-	call, err := c.Go(ctx, key, method, args, res, make(chan *rpc.Call, 1))
+	call, err := c.Go(ctx, key, method, args, res, timeout, make(chan *rpc.Call, 1))
 	if err != nil {
 		return err
 	}
-
-	var tc <-chan time.Time
-	if timeout > 0 {
-		t := time.NewTimer(timeout)
-		defer t.Stop()
-		tc = t.C
-	}
-	select {
-	case <-call.Done:
-		return call.Error
-	case <-tc:
-		return rpc.ErrTimeout
-	}
+	<-call.Done
+	return call.Error
 }
 
 type Result struct {
@@ -150,7 +139,7 @@ func (c *Client) Broadcast(ctx context.Context, method string, args, res interfa
 			}
 			continue
 		}
-		call, err := rc.Go(ctx, method, args, newValuePtr(res), make(chan *rpc.Call, 1))
+		call, err := rc.Go(ctx, method, args, newValuePtr(res), timeout, make(chan *rpc.Call, 1))
 		if err != nil {
 			ch <- Result{
 				Endpoint: ep,
@@ -160,33 +149,16 @@ func (c *Client) Broadcast(ctx context.Context, method string, args, res interfa
 			}
 			continue
 		}
-
 		wg.Add(1)
 		go func(ep endpoint.Endpoint, call *rpc.Call) {
 			defer wg.Done()
-			var tc <-chan time.Time
-			if timeout > 0 {
-				t := time.NewTimer(timeout)
-				defer t.Stop()
-				tc = t.C
-			}
-			select {
-			case <-call.Done:
-				ch <- Result{
-					Endpoint: ep,
-					Error:    call.Error,
-					Method:   method,
-					Args:     args,
-					Reply:    call.Reply,
-				}
-
-			case <-tc:
-				ch <- Result{
-					Endpoint: ep,
-					Error:    rpc.ErrTimeout,
-					Method:   method,
-					Args:     args,
-				}
+			<-call.Done
+			ch <- Result{
+				Endpoint: ep,
+				Error:    call.Error,
+				Method:   method,
+				Args:     args,
+				Reply:    call.Reply,
 			}
 		}(ep, call)
 	}

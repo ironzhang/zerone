@@ -19,7 +19,7 @@ import (
 )
 
 var (
-	ErrTimeout     = errors.New("call timeout")
+	ErrTimeout     = errors.New("remote process call timeout")
 	ErrShutdown    = errors.New("connection is shutdown")
 	ErrUnavailable = errors.New("connection is unavailable")
 )
@@ -171,7 +171,7 @@ func (c *Client) send(call *Call) (err error) {
 	return nil
 }
 
-func (c *Client) Go(ctx context.Context, classMethod string, args interface{}, reply interface{}, done chan *Call) (*Call, error) {
+func (c *Client) Go(ctx context.Context, classMethod string, args interface{}, reply interface{}, timeout time.Duration, done chan *Call) (*Call, error) {
 	if c.IsShutdown() {
 		return nil, ErrShutdown
 	}
@@ -210,27 +210,29 @@ func (c *Client) Go(ctx context.Context, classMethod string, args interface{}, r
 	if err := c.send(call); err != nil {
 		return nil, err
 	}
+
+	// 超时处理
+	if timeout > 0 {
+		time.AfterFunc(timeout, func() {
+			if value, ok := c.pending.Load(sequence); ok {
+				c.pending.Delete(sequence)
+				call := value.(*Call)
+				call.Error = ErrTimeout
+				call.done()
+			}
+		})
+	}
+
 	return call, nil
 }
 
 func (c *Client) Call(ctx context.Context, classMethod string, args interface{}, reply interface{}, timeout time.Duration) error {
-	call, err := c.Go(ctx, classMethod, args, reply, make(chan *Call, 1))
+	call, err := c.Go(ctx, classMethod, args, reply, timeout, make(chan *Call, 1))
 	if err != nil {
 		return err
 	}
-
-	var tc <-chan time.Time
-	if timeout > 0 {
-		t := time.NewTimer(timeout)
-		defer t.Stop()
-		tc = t.C
-	}
-	select {
-	case <-call.Done:
-		return call.Error
-	case <-tc:
-		return ErrTimeout
-	}
+	<-call.Done
+	return call.Error
 }
 
 func (c *Client) Close() error {
