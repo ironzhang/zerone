@@ -7,6 +7,7 @@ import (
 	"net"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/ironzhang/zerone/rpc"
 	"github.com/ironzhang/zerone/rpc/trace"
@@ -41,6 +42,14 @@ func (t *Arith) Random(ctx context.Context, args interface{}, reply *int) error 
 	return nil
 }
 
+type Time int
+
+func (t *Time) Sleep(ctx context.Context, args int, reply interface{}) error {
+	d := time.Duration(args) * time.Millisecond
+	time.Sleep(d)
+	return nil
+}
+
 func ServeRPC(network, address string) {
 	ln, err := net.Listen(network, address)
 	if err != nil {
@@ -49,6 +58,9 @@ func ServeRPC(network, address string) {
 
 	svr := rpc.NewServer("TestServer")
 	if err = svr.Register(new(Arith)); err != nil {
+		panic(err)
+	}
+	if err = svr.Register(new(Time)); err != nil {
 		panic(err)
 	}
 	svr.SetTraceOutput(trace.NewStdOutput(ioutil.Discard))
@@ -198,6 +210,24 @@ func TestGo(t *testing.T) {
 	for range tests {
 		call := <-done
 		t.Logf("%q: error=%v, reply=%v", call.Header.ClassMethod, call.Error, call.Reply)
+	}
+}
+
+func TestGoTimeout(t *testing.T) {
+	c, err := rpc.Dial("TestGo", "tcp", "localhost:2000")
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	c.SetTraceOutput(trace.NewStdOutput(ioutil.Discard))
+	defer c.Close()
+
+	call, err := c.Go(context.Background(), "Time.Sleep", 100, nil, time.Second, nil)
+	if err != nil {
+		t.Fatalf("go: %v", err)
+	}
+	<-call.Done
+	if call.Error != nil {
+		t.Fatal(call.Error)
 	}
 }
 
