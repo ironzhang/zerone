@@ -4,6 +4,8 @@ import (
 	"time"
 )
 
+var timeNow = time.Now
+
 type Trace interface {
 	Request(args interface{})
 	Response(err error, reply interface{})
@@ -31,13 +33,13 @@ type errTrace struct {
 }
 
 func (p *errTrace) Request(args interface{}) {
-	p.start = time.Now()
+	p.start = timeNow()
 	p.args = args
 }
 
 func (p *errTrace) Response(err error, reply interface{}) {
 	if err != nil {
-		end := time.Now()
+		end := timeNow()
 		p.out.Request(Request{
 			Server:      p.server,
 			Start:       p.start,
@@ -77,7 +79,7 @@ type verboseTrace struct {
 }
 
 func (p *verboseTrace) Request(args interface{}) {
-	p.start = time.Now()
+	p.start = timeNow()
 	p.out.Request(Request{
 		Server:      p.server,
 		Start:       p.start,
@@ -95,7 +97,7 @@ func (p *verboseTrace) Response(err error, reply interface{}) {
 	p.out.Response(Response{
 		Server:      p.server,
 		Start:       p.start,
-		End:         time.Now(),
+		End:         timeNow(),
 		TraceID:     p.traceID,
 		ClientName:  p.clientName,
 		ClientAddr:  p.clientAddr,

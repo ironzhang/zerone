@@ -62,7 +62,16 @@ func (p *StdOutput) Request(r Request) {
 
 	args, _ := json.Marshal(r.Args)
 	fmt.Fprintf(p.w, "%s %s.Request[%s][%s:%s->%s:%s][%s]: %s\n",
-		r.Start.Format(timeLayout), prefix, r.TraceID, r.ClientName, r.ClientAddr, r.ServerName, r.ServerAddr, r.ClassMethod, args)
+		r.Start.Format(timeLayout),
+		prefix,
+		r.TraceID,
+		r.ClientName,
+		r.ClientAddr,
+		r.ServerName,
+		r.ServerAddr,
+		r.ClassMethod,
+		args,
+	)
 }
 
 func (p *StdOutput) Response(r Response) {
@@ -72,11 +81,31 @@ func (p *StdOutput) Response(r Response) {
 	}
 
 	if r.Error != nil {
-		fmt.Fprintf(p.w, "%s %s.Error[%s][%s:%s->%s:%s][%s]: %s\n",
-			r.Start.Format(timeLayout), prefix, r.TraceID, r.ClientName, r.ClientAddr, r.ServerName, r.ServerAddr, r.ClassMethod, r.Error)
+		fmt.Fprintf(p.w, "%s %s.Error[%s][%s:%s->%s:%s][%s][%s]: %s\n",
+			r.Start.Format(timeLayout),
+			prefix,
+			r.TraceID,
+			r.ClientName,
+			r.ClientAddr,
+			r.ServerName,
+			r.ServerAddr,
+			r.ClassMethod,
+			r.End.Sub(r.Start),
+			r.Error,
+		)
 	} else {
 		reply, _ := json.Marshal(r.Reply)
-		fmt.Fprintf(p.w, "%s %s.Reply[%s][%s:%s->%s:%s][%s]: %s\n",
-			r.Start.Format(timeLayout), prefix, r.TraceID, r.ClientName, r.ClientAddr, r.ServerName, r.ServerAddr, r.ClassMethod, reply)
+		fmt.Fprintf(p.w, "%s %s.Reply[%s][%s:%s->%s:%s][%s][%s]: %s\n",
+			r.Start.Format(timeLayout),
+			prefix,
+			r.TraceID,
+			r.ClientName,
+			r.ClientAddr,
+			r.ServerName,
+			r.ServerAddr,
+			r.ClassMethod,
+			r.End.Sub(r.Start),
+			reply,
+		)
 	}
 }
