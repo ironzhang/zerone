@@ -15,6 +15,7 @@ import (
 	"github.com/ironzhang/zerone/rpc/codec"
 	"github.com/ironzhang/zerone/rpc/codec/json_codec"
 	"github.com/ironzhang/zerone/rpc/codes"
+	"github.com/ironzhang/zerone/rpc/trace"
 )
 
 type Args struct {
@@ -619,7 +620,7 @@ func TestServerServeRequest(t *testing.T) {
 	if err := s.Register(&e); err != nil {
 		t.Fatalf("Register: %v", err)
 	}
-	s.SetTraceOutput(ioutil.Discard)
+	s.SetTraceOutput(trace.NewStdOutput(ioutil.Discard))
 
 	tests := []struct {
 		reqHeaderErr error
@@ -690,7 +691,7 @@ func TestServerServeConn(t *testing.T) {
 	cli, svr := net.Pipe()
 	c := json_codec.NewClientCodec(cli)
 	s := NewServer("TestServerServeConn")
-	s.SetTraceOutput(ioutil.Discard)
+	s.SetTraceOutput(trace.NewStdOutput(ioutil.Discard))
 
 	var a Arith
 	var err error

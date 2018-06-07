@@ -1,21 +1,21 @@
 package zclient
 
 import (
-	"io"
 	"sync"
 
 	"github.com/ironzhang/zerone/rpc"
+	"github.com/ironzhang/zerone/rpc/trace"
 )
 
 type connector struct {
 	name    string
 	mu      sync.RWMutex
-	output  io.Writer
+	output  trace.Output
 	verbose int
 	clients map[string]*rpc.Client
 }
 
-func newConnector(name string, output io.Writer, verbose int) *connector {
+func newConnector(name string, output trace.Output, verbose int) *connector {
 	return &connector{
 		name:    name,
 		output:  output,
@@ -34,7 +34,7 @@ func (p *connector) close() {
 	p.clients = make(map[string]*rpc.Client)
 }
 
-func (p *connector) setTraceOutput(output io.Writer) {
+func (p *connector) setTraceOutput(output trace.Output) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 

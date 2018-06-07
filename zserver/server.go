@@ -2,7 +2,6 @@ package zserver
 
 import (
 	"fmt"
-	"io"
 	"net"
 	"sync"
 	"time"
@@ -10,6 +9,7 @@ import (
 	"github.com/ironzhang/x-pearls/govern"
 	"github.com/ironzhang/zerone/pkg/endpoint"
 	"github.com/ironzhang/zerone/rpc"
+	"github.com/ironzhang/zerone/rpc/trace"
 )
 
 type Server struct {
@@ -39,7 +39,7 @@ func (s *Server) Close() error {
 	return nil
 }
 
-func (s *Server) SetTraceOutput(out io.Writer) {
+func (s *Server) SetTraceOutput(out trace.Output) {
 	s.server.SetTraceOutput(out)
 }
 

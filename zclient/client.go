@@ -12,6 +12,7 @@ import (
 	"github.com/ironzhang/zerone/pkg/endpoint"
 	"github.com/ironzhang/zerone/pkg/route"
 	"github.com/ironzhang/zerone/rpc"
+	"github.com/ironzhang/zerone/rpc/trace"
 )
 
 // 负载均衡策略
@@ -67,7 +68,7 @@ func (c *Client) Close() error {
 	return rpc.ErrShutdown
 }
 
-func (c *Client) SetTraceOutput(output io.Writer) {
+func (c *Client) SetTraceOutput(output trace.Output) {
 	c.connector.setTraceOutput(output)
 }
 
