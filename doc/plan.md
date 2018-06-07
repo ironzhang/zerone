@@ -6,6 +6,7 @@
 
 - [ ] 注释
 - [ ] 示例
+- [ ] doc.go
 - [ ] README.md
 - [ ] Design.md
 
@@ -18,5 +19,6 @@
 ### 功能优化
 
 - [x] 梳理ServerName, ClientName, ServiceName, ClassName, MethodName等概念和从属关系，修改代码中的命名
-- [ ] 抽取trace output event对象，输出事件给外部接口
+- [x] 抽取trace output event对象，输出事件给外部接口
+- [ ] timeout机制由rpc.Client.Go实现
 - [ ] trace日志输出更多详细信息: 如IP等
