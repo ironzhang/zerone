@@ -20,5 +20,5 @@
 
 - [x] 梳理ServerName, ClientName, ServiceName, ClassName, MethodName等概念和从属关系，修改代码中的命名
 - [x] 抽取trace output event对象，输出事件给外部接口
-- [ ] timeout机制由rpc.Client.Go实现
+- [x] timeout机制由rpc.Client.Go实现
 - [ ] trace日志输出更多详细信息: 如IP等
