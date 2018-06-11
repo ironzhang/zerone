@@ -204,7 +204,7 @@ func TestGo(t *testing.T) {
 	for i, tt := range tests {
 		_, err := c.Go(context.Background(), tt.serviceMethod, tt.args, tt.reply, 0, done)
 		if err != nil {
-			t.Fatalf("case%d: call: %v", i, err)
+			t.Fatalf("case%d: go: %v", i, err)
 		}
 	}
 	for range tests {
@@ -221,13 +221,25 @@ func TestGoTimeout(t *testing.T) {
 	c.SetTraceOutput(trace.NewStdOutput(ioutil.Discard))
 	defer c.Close()
 
-	call, err := c.Go(context.Background(), "Time.Sleep", 100, nil, time.Second, nil)
-	if err != nil {
-		t.Fatalf("go: %v", err)
+	tests := []struct {
+		sleep   int
+		timeout time.Duration
+		err     error
+	}{
+		{sleep: 100, timeout: time.Second, err: nil},
+		{sleep: 100, timeout: 50 * time.Millisecond, err: rpc.ErrTimeout},
 	}
-	<-call.Done
-	if call.Error != nil {
-		t.Fatal(call.Error)
+	for i, tt := range tests {
+		call, err := c.Go(context.Background(), "Time.Sleep", tt.sleep, nil, tt.timeout, nil)
+		if err != nil {
+			t.Fatalf("%d: go: %v", i, err)
+		}
+		<-call.Done
+		if got, want := call.Error, tt.err; got != want {
+			t.Fatalf("%d: error: got %v, want %v", i, got, want)
+		} else {
+			t.Logf("%d: error: got %v", i, got)
+		}
 	}
 }
 
