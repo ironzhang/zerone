@@ -158,6 +158,7 @@ func TestSplitServiceMethodCorrect(t *testing.T) {
 		{serviceMethod: ".a", service: "", method: "a"},
 		{serviceMethod: "a.b", service: "a", method: "b"},
 		{serviceMethod: "ABC.abc", service: "ABC", method: "abc"},
+		{serviceMethod: "hall.Server.CreateHall", service: "hall.Server", method: "CreateHall"},
 	}
 	for _, tt := range tests {
 		service, method, err := splitClassMethod(tt.serviceMethod)
@@ -166,9 +167,13 @@ func TestSplitServiceMethodCorrect(t *testing.T) {
 		}
 		if got, want := service, tt.service; got != want {
 			t.Errorf("serviceMethod=%q: service: %q != %q", tt.serviceMethod, got, want)
+		} else {
+			t.Logf("serviceMethod=%q: service: %q", tt.serviceMethod, got)
 		}
 		if got, want := method, tt.method; got != want {
 			t.Errorf("serviceMethod=%q: method: %q != %q", tt.serviceMethod, got, want)
+		} else {
+			t.Logf("serviceMethod=%q: method: %q", tt.serviceMethod, got)
 		}
 	}
 }
