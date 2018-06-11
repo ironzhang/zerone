@@ -102,7 +102,7 @@ func suitableMethods(typ reflect.Type, reportErr bool) map[string]*method {
 		meth, err := parseMethod(m)
 		if err != nil {
 			if reportErr {
-				zlog.Infof("parse method: %v", err)
+				zlog.Debugf("parse method: %v", err)
 			}
 			continue
 		}
