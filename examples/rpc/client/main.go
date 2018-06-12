@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ironzhang/x-pearls/zlog"
+	"github.com/ironzhang/x-pearls/log"
 	"github.com/ironzhang/zerone/examples/rpc/arith"
 	"github.com/ironzhang/zerone/rpc"
 )
@@ -181,7 +181,7 @@ func main() {
 
 	c, err := rpc.Dial("ArithClient", opts.net, opts.addr)
 	if err != nil {
-		zlog.Fatalf("dial: %v", err)
+		log.Fatalf("dial: %v", err)
 	}
 	defer c.Close()
 
@@ -191,7 +191,7 @@ func main() {
 		fmt.Printf("$")
 		line, err := r.ReadString('\n')
 		if err != nil {
-			zlog.Fatalf("read string: %v", err)
+			log.Fatalf("read string: %v", err)
 		}
 		cmd, err := ParseCommand(line)
 		if err != nil {

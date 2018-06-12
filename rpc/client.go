@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/ironzhang/pearls/uuid"
-	"github.com/ironzhang/x-pearls/zlog"
+	"github.com/ironzhang/x-pearls/log"
 	"github.com/ironzhang/zerone/rpc/codec"
 	"github.com/ironzhang/zerone/rpc/codec/json_codec"
 	"github.com/ironzhang/zerone/rpc/codes"
@@ -42,7 +42,7 @@ func (c *Call) done() {
 	case c.Done <- c:
 		// ok
 	default:
-		zlog.Warn("rpc: discarding Call reply due to insufficient Done chan capacity")
+		log.Warn("rpc: discarding Call reply due to insufficient Done chan capacity")
 	}
 }
 
@@ -140,7 +140,7 @@ func (c *Client) reading() {
 	var err error
 	for keepReading := true; keepReading; {
 		if keepReading, err = c.readResponse(); err != nil {
-			zlog.Tracef("read response: %v", err)
+			log.Tracef("read response: %v", err)
 		}
 	}
 
@@ -157,7 +157,7 @@ func (c *Client) reading() {
 		return true
 	})
 
-	zlog.Tracef("client quit reading: %v", err)
+	log.Tracef("client quit reading: %v", err)
 }
 
 func (c *Client) send(call *Call) (err error) {
@@ -183,7 +183,7 @@ func (c *Client) Go(ctx context.Context, classMethod string, args interface{}, r
 		done = make(chan *Call, 10)
 	} else {
 		if cap(done) == 0 {
-			zlog.Panic("rpc: done channel is unbuffered")
+			log.Panic("rpc: done channel is unbuffered")
 		}
 	}
 

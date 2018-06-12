@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ironzhang/x-pearls/zlog"
+	"github.com/ironzhang/x-pearls/log"
 )
 
 func init() {
-	//zlog.Default.SetLevel(zlog.DEBUG)
-	zlog.Default.SetLevel(zlog.WARN)
+	//log.Default.SetLevel(zlog.DEBUG)
+	log.Default.SetLevel(log.WARN)
 }
 
 func TestIsExported(t *testing.T) {

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/ironzhang/x-pearls/zlog"
+	"github.com/ironzhang/x-pearls/log"
 	"github.com/ironzhang/zerone/rpc/codec"
 	"github.com/ironzhang/zerone/rpc/codec/json_codec"
 	"github.com/ironzhang/zerone/rpc/codes"
@@ -279,7 +279,7 @@ func (s *Server) ServeCodec(c codec.ServerCodec) {
 		}
 		go s.serveCall(c, req, method, rcvr, args, reply)
 	}
-	zlog.Trace("server quit serve codec")
+	log.Trace("server quit serve codec")
 }
 
 func (s *Server) ServeConn(rwc io.ReadWriteCloser) {
@@ -290,7 +290,7 @@ func (s *Server) Accept(ln net.Listener) {
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			zlog.Tracef("rpc.Accept: %v", err)
+			log.Tracef("rpc.Accept: %v", err)
 			return
 		}
 		go s.ServeConn(conn)

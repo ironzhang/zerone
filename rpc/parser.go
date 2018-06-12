@@ -8,7 +8,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/ironzhang/x-pearls/zlog"
+	"github.com/ironzhang/x-pearls/log"
 )
 
 var (
@@ -102,7 +102,7 @@ func suitableMethods(typ reflect.Type, reportErr bool) map[string]*method {
 		meth, err := parseMethod(m)
 		if err != nil {
 			if reportErr {
-				zlog.Debugf("parse method: %v", err)
+				log.Debugf("parse method: %v", err)
 			}
 			continue
 		}

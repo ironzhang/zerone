@@ -4,7 +4,7 @@ import (
 	"flag"
 	"net"
 
-	"github.com/ironzhang/x-pearls/zlog"
+	"github.com/ironzhang/x-pearls/log"
 	"github.com/ironzhang/zerone/examples/rpc/arith"
 	"github.com/ironzhang/zerone/examples/rpc/trace"
 	"github.com/ironzhang/zerone/rpc"
@@ -27,17 +27,17 @@ func main() {
 
 	ln, err := net.Listen(opts.net, opts.addr)
 	if err != nil {
-		zlog.Fatalf("listen: %v", err)
+		log.Fatalf("listen: %v", err)
 	}
 	defer ln.Close()
 
 	s := rpc.NewServer("ArithServer")
 	if err := s.Register(arith.Arith(0)); err != nil {
-		zlog.Fatalf("register: %v", err)
+		log.Fatalf("register: %v", err)
 	}
 	if err := s.Register(trace.New(s)); err != nil {
-		zlog.Fatalf("register: %v", err)
+		log.Fatalf("register: %v", err)
 	}
-	zlog.Infof("serve on %s@%s", opts.net, opts.addr)
+	log.Infof("serve on %s@%s", opts.net, opts.addr)
 	s.Accept(ln)
 }
