@@ -549,6 +549,7 @@ func TestServerWriteResponse(t *testing.T) {
 func TestServerCallCorrect(t *testing.T) {
 	var a Arith
 	var s Server
+	req := &codec.RequestHeader{}
 	tests := []struct {
 		method reflect.Method
 		rcvr   interface{}
@@ -572,7 +573,7 @@ func TestServerCallCorrect(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		err := s.call(tt.method, reflect.ValueOf(tt.rcvr), reflect.ValueOf(tt.args), reflect.ValueOf(tt.reply))
+		err := s.call(req, tt.method, reflect.ValueOf(tt.rcvr), reflect.ValueOf(tt.args), reflect.ValueOf(tt.reply))
 		if err != nil {
 			t.Fatalf("serveCall: %v", err)
 		}
@@ -587,6 +588,7 @@ func TestServerCallCorrect(t *testing.T) {
 func TestServerCallError(t *testing.T) {
 	var a Arith
 	var s Server
+	req := &codec.RequestHeader{}
 	tests := []struct {
 		method reflect.Method
 		rcvr   interface{}
@@ -602,7 +604,7 @@ func TestServerCallError(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		err := s.call(tt.method, reflect.ValueOf(tt.rcvr), reflect.ValueOf(tt.args), reflect.ValueOf(tt.reply))
+		err := s.call(req, tt.method, reflect.ValueOf(tt.rcvr), reflect.ValueOf(tt.args), reflect.ValueOf(tt.reply))
 		if err == nil {
 			t.Fatalf("serveCall: return error is nil")
 		} else {

@@ -181,7 +181,7 @@ func (s *Server) writeResponse(c codec.ServerCodec, req *codec.RequestHeader, re
 	return c.WriteResponse(&resp, reply)
 }
 
-func (s *Server) call(method reflect.Method, rcvr, args, reply reflect.Value) (err error) {
+func (s *Server) call(req *codec.RequestHeader, method reflect.Method, rcvr, args, reply reflect.Value) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			if e, ok := r.(error); ok {
@@ -193,6 +193,8 @@ func (s *Server) call(method reflect.Method, rcvr, args, reply reflect.Value) (e
 	}()
 
 	ctx := context.Background()
+	ctx = WithTraceID(ctx, req.TraceID)
+	ctx = WithVerbose(ctx, req.Verbose)
 	rets := method.Func.Call([]reflect.Value{rcvr, reflect.ValueOf(ctx), args, reply})
 	erri := rets[0].Interface()
 	if erri != nil {
@@ -244,7 +246,7 @@ func (s *Server) serveError(c codec.ServerCodec, req *codec.RequestHeader, err e
 func (s *Server) serveCall(c codec.ServerCodec, req *codec.RequestHeader, method reflect.Method, rcvr, args, reply reflect.Value) {
 	tr := s.logger.NewTrace(true, req.Verbose, req.TraceID, req.ClientName, "", s.name, "", req.ClassMethod)
 	tr.Request(args.Interface())
-	err := s.call(method, rcvr, args, reply)
+	err := s.call(req, method, rcvr, args, reply)
 	s.writeResponse(c, req, reply.Interface(), err)
 	tr.Response(s.rpcError(err), reply.Interface())
 }
