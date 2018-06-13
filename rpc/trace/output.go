@@ -52,7 +52,7 @@ func NewStdOutput(w io.Writer) *StdOutput {
 	return &StdOutput{w: w}
 }
 
-const timeLayout = "2006-01-02 15:04:05.999999 -0700 MST"
+const timeLayout = "2006/01/02 15:04:05.000Z0700"
 
 func (p *StdOutput) Request(r Request) {
 	prefix := "Client"
@@ -82,7 +82,7 @@ func (p *StdOutput) Response(r Response) {
 
 	if r.Error != nil {
 		fmt.Fprintf(p.w, "%s %s.Error[%s][%s:%s->%s:%s][%s][%s]: %s\n",
-			r.Start.Format(timeLayout),
+			r.End.Format(timeLayout),
 			prefix,
 			r.TraceID,
 			r.ClientName,
@@ -96,7 +96,7 @@ func (p *StdOutput) Response(r Response) {
 	} else {
 		reply, _ := json.Marshal(r.Reply)
 		fmt.Fprintf(p.w, "%s %s.Reply[%s][%s:%s->%s:%s][%s][%s]: %s\n",
-			r.Start.Format(timeLayout),
+			r.End.Format(timeLayout),
 			prefix,
 			r.TraceID,
 			r.ClientName,
