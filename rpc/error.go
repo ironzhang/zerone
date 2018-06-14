@@ -18,28 +18,28 @@ type ErrorCause interface {
 	Cause() error
 }
 
-type rpcError struct {
+type Error struct {
 	server string
 	code   codes.Code
 	cause  error
 }
 
 func NewError(code codes.Code, cause error) error {
-	return rpcError{
+	return Error{
 		code:  code,
 		cause: cause,
 	}
 }
 
 func Errorf(code codes.Code, format string, a ...interface{}) error {
-	return rpcError{
+	return Error{
 		code:  code,
 		cause: fmt.Errorf(format, a...),
 	}
 }
 
 func NewServerError(server string, code codes.Code, cause error) error {
-	return rpcError{
+	return Error{
 		server: server,
 		code:   code,
 		cause:  cause,
@@ -47,14 +47,14 @@ func NewServerError(server string, code codes.Code, cause error) error {
 }
 
 func ServerErrorf(server string, code codes.Code, format string, a ...interface{}) error {
-	return rpcError{
+	return Error{
 		server: server,
 		code:   code,
 		cause:  fmt.Errorf(format, a...),
 	}
 }
 
-func (e rpcError) Server() string {
+func (e Error) Server() string {
 	if e.server != "" {
 		return e.server
 	}
@@ -64,15 +64,15 @@ func (e rpcError) Server() string {
 	return ""
 }
 
-func (e rpcError) Code() codes.Code {
+func (e Error) Code() codes.Code {
 	return e.code
 }
 
-func (e rpcError) Cause() error {
+func (e Error) Cause() error {
 	return e.cause
 }
 
-func (e rpcError) Error() string {
+func (e Error) Error() string {
 	if e.server == "" {
 		return fmt.Sprintf("{code: %d, desc: %s, cause: %v}", e.code, e.code.String(), e.cause)
 	}

@@ -208,7 +208,7 @@ func (s *Server) rpcError(err error) error {
 		return nil
 	}
 
-	if e, ok := err.(rpcError); ok {
+	if e, ok := err.(Error); ok {
 		if e.server == "" {
 			e.server = s.name
 		}
