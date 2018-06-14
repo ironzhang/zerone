@@ -25,7 +25,7 @@ func init() {
 }
 
 func TestConnectorDial(t *testing.T) {
-	c := newConnector("", nil, 0)
+	c := newConnector("")
 
 	type point struct {
 		key, net, addr string
@@ -80,7 +80,7 @@ func TestConnectorDial(t *testing.T) {
 
 func BenchmarkConnectorDial(b *testing.B) {
 	b.SetParallelism(50)
-	c := newConnector("", nil, 0)
+	c := newConnector("")
 	b.RunParallel(func(pb *testing.PB) {
 		key := fmt.Sprint(rand.Int())
 		for pb.Next() {

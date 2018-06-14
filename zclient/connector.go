@@ -15,11 +15,11 @@ type connector struct {
 	clients map[string]*rpc.Client
 }
 
-func newConnector(name string, output trace.Output, verbose int) *connector {
+func newConnector(name string) *connector {
 	return &connector{
 		name:    name,
-		output:  output,
-		verbose: verbose,
+		output:  trace.DefaultOutput,
+		verbose: 0,
 		clients: make(map[string]*rpc.Client),
 	}
 }

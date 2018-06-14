@@ -39,7 +39,7 @@ func New(name string, table route.Table) *Client {
 	return &Client{
 		shutdown:      new(int32),
 		table:         table,
-		connector:     newConnector(name, nil, 0),
+		connector:     newConnector(name),
 		balance:       balance.NewManager(table, nil),
 		balancePolicy: RandomBalancer,
 		failPolicy:    NewFailtry(0, 0, 0),
