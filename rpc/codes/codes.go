@@ -36,6 +36,7 @@ func init() {
 	Register(OK, "ok")
 	Register(Unknown, "unknown")
 	Register(Internal, "internal")
-	Register(InvalidHeader, "invalid header")
-	Register(InvalidRequest, "invalid request")
+	Register(InvalidHeader, "invalid rpc header")
+	Register(InvalidRequest, "invalid rpc request")
+	Register(InvalidResponse, "invalid rpc response")
 }
