@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/ironzhang/zerone/rpc/codes"
@@ -72,9 +73,20 @@ func (e Error) Cause() error {
 	return e.cause
 }
 
+type jsonError struct {
+	Server string `json:",omitempty"`
+	Code   int
+	Desc   string
+	Cause  string
+}
+
 func (e Error) Error() string {
-	if e.server == "" {
-		return fmt.Sprintf("{code: %d, desc: %s, cause: %v}", e.code, e.code.String(), e.cause)
+	je := jsonError{
+		Server: e.server,
+		Code:   int(e.code),
+		Desc:   e.code.String(),
+		Cause:  e.cause.Error(),
 	}
-	return fmt.Sprintf("{server: %s, code: %d, desc: %s, cause: %v}", e.server, e.code, e.code.String(), e.cause)
+	data, _ := json.Marshal(je)
+	return string(data)
 }
