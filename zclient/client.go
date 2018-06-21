@@ -80,6 +80,10 @@ func (c *Client) SetTraceVerbose(verbose int) {
 	c.connector.setTraceVerbose(verbose)
 }
 
+func (c *Client) ListEndpoints() []endpoint.Endpoint {
+	return c.table.ListEndpoints()
+}
+
 func (c *Client) WithBalancePolicy(policy BalancePolicy) *Client {
 	nc := c.clone()
 	nc.balancePolicy = policy
