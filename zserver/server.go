@@ -59,7 +59,7 @@ func (s *Server) RegisterName(name string, rcvr interface{}) error {
 	return s.server.RegisterName(name, rcvr)
 }
 
-func (s *Server) ListenAndServe(network, address string) (err error) {
+func (s *Server) ListenAndServe(network, address, endpointName string) (err error) {
 	ln, err := net.Listen(network, address)
 	if err != nil {
 		return err
@@ -67,9 +67,12 @@ func (s *Server) ListenAndServe(network, address string) (err error) {
 	s.addListener(ln)
 
 	if s.driver != nil {
+		if endpointName == "" {
+			endpointName = fmt.Sprintf("%s@%s", network, address)
+		}
 		p := s.driver.NewProvider(s.service, 10*time.Second, func() govern.Endpoint {
 			return &endpoint.Endpoint{
-				Name: fmt.Sprintf("%s@%s", network, address),
+				Name: endpointName,
 				Net:  network,
 				Addr: address,
 			}

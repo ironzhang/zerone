@@ -43,7 +43,7 @@ func main() {
 	go func() {
 		net, addr := "tcp", "localhost:8000"
 		log.Infof("listen and serve on %s://%s", net, addr)
-		if err = svr.ListenAndServe(net, addr); err != nil {
+		if err = svr.ListenAndServe(net, addr, ""); err != nil {
 			log.Fatalf("listen and serve: %v", err)
 		}
 	}()

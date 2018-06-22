@@ -29,6 +29,10 @@ func NewServer(name string) *Server {
 	}
 }
 
+func (s *Server) Name() string {
+	return s.name
+}
+
 func (s *Server) SetTraceOutput(out trace.Output) {
 	s.logger.SetOutput(out)
 }

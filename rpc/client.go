@@ -89,6 +89,10 @@ func NewClientWithCodec(name string, c codec.ClientCodec) *Client {
 	return client
 }
 
+func (c *Client) Name() string {
+	return c.name
+}
+
 func (c *Client) SetTraceOutput(out trace.Output) {
 	c.logger.SetOutput(out)
 }

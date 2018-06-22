@@ -55,7 +55,7 @@ func TestServerWithDriver(t *testing.T) {
 	}
 	for _, tt := range tests {
 		go func(net, addr string) {
-			if err := s.ListenAndServe(net, addr); err != nil {
+			if err := s.ListenAndServe(net, addr, ""); err != nil {
 				t.Fatalf("listen and serve: %v", err)
 			}
 		}(tt.net, tt.addr)
@@ -108,7 +108,7 @@ func TestServerWithoutDriver(t *testing.T) {
 	}
 	for _, tt := range tests {
 		go func(net, addr string) {
-			if err := s.ListenAndServe(net, addr); err != nil {
+			if err := s.ListenAndServe(net, addr, ""); err != nil {
 				t.Fatalf("listen and serve: %v", err)
 			}
 		}(tt.net, tt.addr)
