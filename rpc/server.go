@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"reflect"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -188,6 +189,11 @@ func (s *Server) writeResponse(c codec.ServerCodec, req *codec.RequestHeader, re
 func (s *Server) call(req *codec.RequestHeader, method reflect.Method, rcvr, args, reply reflect.Value) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
+			const size = 64 << 10
+			buf := make([]byte, size)
+			buf = buf[:runtime.Stack(buf, false)]
+			log.Errorf("panic: %v\n%s", r, buf)
+
 			if e, ok := r.(error); ok {
 				err = e
 			} else {
