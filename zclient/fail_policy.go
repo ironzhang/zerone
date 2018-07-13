@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/ironzhang/zerone/pkg/balance"
+	"github.com/ironzhang/zerone/pkg/endpoint"
 	"github.com/ironzhang/zerone/rpc"
 )
 
@@ -46,6 +47,7 @@ func (p *Failtry) execute(lb balance.LoadBalancer, key []byte, do func(net, addr
 	}
 
 	delay := p.min
+	var call *rpc.Call
 	for i := 0; i < p.try; i++ {
 		if i > 0 {
 			timeSleep(delay)
@@ -54,7 +56,7 @@ func (p *Failtry) execute(lb balance.LoadBalancer, key []byte, do func(net, addr
 				delay = p.max
 			}
 		}
-		if call, err := do(ep.Net, ep.Addr); err == rpc.ErrShutdown {
+		if call, err = do(ep.Net, ep.Addr); err == rpc.ErrShutdown {
 			return nil, err
 		} else if err != nil {
 			continue
@@ -62,7 +64,7 @@ func (p *Failtry) execute(lb balance.LoadBalancer, key []byte, do func(net, addr
 			return call, err
 		}
 	}
-	return nil, rpc.ErrUnavailable
+	return nil, err
 }
 
 type Failover struct {
@@ -79,12 +81,15 @@ func NewFailover(try int) *Failover {
 }
 
 func (p *Failover) execute(lb balance.LoadBalancer, key []byte, do func(net, addr string) (*rpc.Call, error)) (*rpc.Call, error) {
+	var err error
+	var call *rpc.Call
+	var ep endpoint.Endpoint
 	for i := 0; i < p.try; i++ {
-		ep, err := lb.GetEndpoint(key)
+		ep, err = lb.GetEndpoint(key)
 		if err != nil {
 			return nil, err
 		}
-		if call, err := do(ep.Net, ep.Addr); err == rpc.ErrShutdown {
+		if call, err = do(ep.Net, ep.Addr); err == rpc.ErrShutdown {
 			return nil, err
 		} else if err != nil {
 			continue
@@ -92,5 +97,5 @@ func (p *Failover) execute(lb balance.LoadBalancer, key []byte, do func(net, add
 			return call, err
 		}
 	}
-	return nil, rpc.ErrUnavailable
+	return nil, err
 }
