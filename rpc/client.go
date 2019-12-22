@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/ironzhang/pearls/uuid"
-	"github.com/ironzhang/x-pearls/log"
+	log "github.com/ironzhang/tlog"
 	"github.com/ironzhang/zerone/rpc/codec"
 	"github.com/ironzhang/zerone/rpc/codec/json_codec"
 	"github.com/ironzhang/zerone/rpc/codes"
@@ -144,7 +144,7 @@ func (c *Client) reading() {
 	var err error
 	for keepReading := true; keepReading; {
 		if keepReading, err = c.readResponse(); err != nil {
-			log.Tracef("read response: %v", err)
+			log.Debugf("read response: %v", err)
 		}
 	}
 
@@ -161,7 +161,7 @@ func (c *Client) reading() {
 		return true
 	})
 
-	log.Tracef("client quit reading: %v", err)
+	log.Debugf("client quit reading: %v", err)
 }
 
 func (c *Client) send(call *Call) (err error) {

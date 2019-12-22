@@ -4,7 +4,7 @@ import (
 	"flag"
 	"net"
 
-	"github.com/ironzhang/x-pearls/log"
+	log "github.com/ironzhang/tlog"
 	"github.com/ironzhang/zerone/examples/rpc/arith"
 	"github.com/ironzhang/zerone/examples/rpc/trace"
 	"github.com/ironzhang/zerone/rpc"

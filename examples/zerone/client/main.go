@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/ironzhang/x-pearls/log"
+	log "github.com/ironzhang/tlog"
 	"github.com/ironzhang/zerone"
 	"github.com/ironzhang/zerone/examples/rpc/arith"
 	"github.com/ironzhang/zerone/examples/zerone/conf"

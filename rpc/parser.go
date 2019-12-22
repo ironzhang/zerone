@@ -8,7 +8,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/ironzhang/x-pearls/log"
+	log "github.com/ironzhang/tlog"
 )
 
 var (

@@ -5,13 +5,11 @@ import (
 	"reflect"
 	"testing"
 	"time"
-
-	"github.com/ironzhang/x-pearls/log"
 )
 
 func init() {
 	//log.Default.SetLevel(zlog.DEBUG)
-	log.Default.SetLevel(log.WARN)
+	//log.Default.SetLevel(log.WARN)
 }
 
 func TestIsExported(t *testing.T) {
